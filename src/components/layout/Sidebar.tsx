@@ -3,9 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
-import { LayoutDashboard, Users, Store, Package, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, Store, Package, LogOut, X } from "lucide-react";
 
-export default function Sidebar() {
+interface SidebarProps {
+  isMobileOpen: boolean;
+  closeMobile: () => void;
+}
+
+export default function Sidebar({ isMobileOpen, closeMobile }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
 
@@ -21,16 +26,19 @@ export default function Sidebar() {
     { name: "Purchases", href: "/purchases", icon: Package },
   ];
 
-  return (
-    <aside className="w-64 bg-[#1B2A4A] text-white flex-col hidden md:flex h-full shadow-lg">
-      <div className="h-16 flex items-center px-6 border-b border-slate-700">
+  const SidebarContent = (
+    <>
+      <div className="h-16 flex items-center justify-between px-6 border-b border-slate-700 shrink-0">
         <h2 className="text-xl font-bold flex items-center">
           <Store className="mr-2 text-[#F0A500]" />
           Dollar Point
         </h2>
+        <button className="md:hidden text-white/70 hover:text-white" onClick={closeMobile}>
+          <X className="w-6 h-6" />
+        </button>
       </div>
 
-      <nav className="flex-1 py-4 flex flex-col gap-1 px-3">
+      <nav className="flex-1 py-4 flex flex-col gap-1 px-3 overflow-y-auto">
         {navLinks.map((link) => {
           const isActive = pathname.startsWith(link.href);
           const Icon = link.icon;
@@ -38,30 +46,56 @@ export default function Sidebar() {
             <Link
               key={link.name}
               href={link.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+              onClick={closeMobile}
+              className={`flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-lg transition-colors ${
                 isActive ? "bg-slate-800 text-[#F0A500]" : "hover:bg-slate-800 text-slate-300"
               }`}
             >
               <Icon className="w-5 h-5" />
-              <span className="font-medium">{link.name}</span>
+              <span className="font-medium text-base md:text-sm">{link.name}</span>
             </Link>
           );
         })}
       </nav>
 
-      <div className="p-4 border-t border-slate-700">
-        <div className="mb-4">
-          <p className="text-sm font-semibold truncate">{user?.name || "Admin"}</p>
+      <div className="p-4 border-t border-slate-700 shrink-0">
+        <div className="mb-4 px-2">
+          <p className="text-sm font-semibold truncate text-white">{user?.name || "Admin"}</p>
           <p className="text-xs text-slate-400 uppercase tracking-wider">{user?.role}</p>
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 transition-colors w-full p-2 hover:bg-slate-800 rounded-lg"
+          className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 transition-colors w-full p-3 md:p-2 hover:bg-slate-800 rounded-lg"
         >
-          <LogOut className="w-4 h-4" />
-          Logout
+          <LogOut className="w-5 h-5 md:w-4 md:h-4" />
+          <span className="font-medium">Logout</span>
         </button>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="w-64 bg-[#1B2A4A] text-white hidden md:flex flex-col h-full shadow-lg z-20">
+        {SidebarContent}
+      </aside>
+
+      {/* Mobile Sidebar Overlay */}
+      {isMobileOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" 
+            onClick={closeMobile}
+          ></div>
+          
+          {/* Slide-out Menu */}
+          <aside className="relative w-72 max-w-[80%] bg-[#1B2A4A] text-white flex flex-col h-full shadow-2xl animate-in slide-in-from-left duration-300">
+            {SidebarContent}
+          </aside>
+        </div>
+      )}
+    </>
   );
 }
