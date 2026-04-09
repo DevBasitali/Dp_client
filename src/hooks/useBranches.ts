@@ -15,7 +15,7 @@ export const useBranches = () => {
     queryKey: ['branches'],
     queryFn: async () => {
       const { data } = await api.get('/branches');
-      return data.data.branches as Branch[];
+      return (data.data || []) as Branch[];
     },
   });
 };

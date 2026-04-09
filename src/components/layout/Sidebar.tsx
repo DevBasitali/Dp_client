@@ -16,6 +16,7 @@ export default function Sidebar() {
   const navLinks = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Vendors", href: "/vendors", icon: Users },
+    { name: "Items", href: "/items", icon: Package },
     { name: "Branches", href: "/branches", icon: Store },
     { name: "Purchases", href: "/purchases", icon: Package },
   ];
