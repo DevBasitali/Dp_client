@@ -17,12 +17,12 @@ export default function BottomNav() {
     ? [
         { name: "Home", href: "/branch-dashboard", icon: Home },
         { name: "Vendors", href: "/vendors", icon: Users },
-        { name: "Requests", href: "/requests", icon: Package },
-        { name: "Sales", href: "/daily-sales", icon: BarChart2 },
+        { name: "Orders", href: "/vendor-orders", icon: Package },
+        { name: "Closing", href: "/daily-closings", icon: BarChart2 },
       ]
     : [
-        { name: "Balance", href: "/vendor-portal", icon: Home },
-        { name: "Items", href: "/vendor/items", icon: Package },
+        { name: "My Items", href: "/vendor-portal/items", icon: Package },
+        { name: "My Orders", href: "/vendor-portal/orders", icon: Home },
       ];
 
   return (

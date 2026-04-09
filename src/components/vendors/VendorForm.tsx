@@ -74,11 +74,11 @@ export default function VendorForm({ isOpen, onClose, vendorToEdit }: VendorForm
   const onSubmit = (data: VendorFormValues) => {
     if (isEditing) {
       updateMutation.mutate(
-        { id: vendorToEdit.id, ...data },
+        { id: vendorToEdit.id, ...(data as any) },
         { onSuccess: () => onClose() }
       );
     } else {
-      createMutation.mutate(data, { onSuccess: () => onClose() });
+      createMutation.mutate(data as any, { onSuccess: () => onClose() });
     }
   };
 

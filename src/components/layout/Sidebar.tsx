@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
-import { LayoutDashboard, Users, Store, Package, LogOut, X } from "lucide-react";
+import { LayoutDashboard, Users, Store, Package, LogOut, X, ClipboardList, Wallet, CalendarCheck, BarChart3, Settings as SettingsIcon } from "lucide-react";
 
 interface SidebarProps {
   isMobileOpen: boolean;
@@ -23,7 +23,11 @@ export default function Sidebar({ isMobileOpen, closeMobile }: SidebarProps) {
     { name: "Vendors", href: "/vendors", icon: Users },
     { name: "Items", href: "/items", icon: Package },
     { name: "Branches", href: "/branches", icon: Store },
-    { name: "Purchases", href: "/purchases", icon: Package },
+    { name: "Vendor Orders", href: "/vendor-orders", icon: ClipboardList },
+    { name: "Daily Closing", href: "/daily-closings", icon: Wallet },
+    { name: "Monthly Closing", href: "/monthly-closings", icon: CalendarCheck },
+    { name: "Reports", href: "/reports", icon: BarChart3 },
+    { name: "Settings", href: "/settings", icon: SettingsIcon },
   ];
 
   const SidebarContent = (
