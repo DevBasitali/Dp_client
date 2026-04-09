@@ -14,7 +14,7 @@ export default function DailyClosingsPage() {
   const isManager = user?.role === "branch_manager";
   
   // Filter natively if manager
-  const filters = isManager ? { branchId: user.branchId } : {};
+  const filters = isManager ? { branchId: user.branchId ?? undefined } : {};
   const { data: closings, isLoading, isError } = useDailyClosings(filters);
 
   // Format money helper
