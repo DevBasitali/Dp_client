@@ -8,11 +8,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Branch, useCreateBranch, useUpdateBranch } from "@/hooks/useBranches";
 
 const branchSchema = z.object({
   name: z.string().min(1, "Branch name is required").max(100),
   location: z.string().optional(),
+  is_active: z.boolean(),
 });
 
 type BranchFormValues = z.infer<typeof branchSchema>;
@@ -33,6 +35,7 @@ export default function BranchForm({ isOpen, onClose, branchToEdit }: BranchForm
     defaultValues: {
       name: "",
       location: "",
+      is_active: true,
     },
   });
 
@@ -43,9 +46,10 @@ export default function BranchForm({ isOpen, onClose, branchToEdit }: BranchForm
         form.reset({
           name: branchToEdit.name,
           location: branchToEdit.location || "",
+          is_active: branchToEdit.is_active,
         });
       } else {
-        form.reset({ name: "", location: "" });
+        form.reset({ name: "", location: "", is_active: true });
       }
     }
   }, [isOpen, branchToEdit, form]);
@@ -101,6 +105,26 @@ export default function BranchForm({ isOpen, onClose, branchToEdit }: BranchForm
               <p className="text-xs text-red-500">{form.formState.errors.location.message}</p>
             )}
           </div>
+
+          {isEditing && (
+            <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
+              <Checkbox
+                id="is_active"
+                checked={form.watch("is_active")}
+                onCheckedChange={(checked) => {
+                  form.setValue("is_active", checked as boolean);
+                }}
+              />
+              <div className="space-y-1 leading-none">
+                <Label htmlFor="is_active" className="cursor-pointer">
+                  Branch is Active
+                </Label>
+                <p className="text-sm text-gray-500">
+                  Unchecking this will hide the branch from dropdowns instead of deleting it.
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end space-x-2 pt-4">
             <Button

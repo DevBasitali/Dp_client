@@ -39,13 +39,21 @@ export default function LoginPage() {
     },
     onSuccess: (response) => {
       if (response.success && response.data) {
-        const { user, token } = response.data;
-        setAuth(user, token);
+        const { user: raw, token } = response.data;
+        // Server returns DB field names (id, branch_id, vendor_id).
+        // authStore expects camelCase (userId, branchId, vendorId). Map here.
+        setAuth({
+          userId:   raw.id,
+          role:     raw.role,
+          branchId: raw.branch_id ?? null,
+          vendorId: raw.vendor_id ?? null,
+          name:     raw.name,
+          email:    raw.email,
+        }, token);
 
-        // Redirect based on role
-        if (user.role === "owner") {
+        if (raw.role === "owner") {
           router.push("/dashboard");
-        } else if (user.role === "branch_manager") {
+        } else if (raw.role === "branch_manager") {
           router.push("/branch-dashboard");
         } else {
           router.push("/vendor-portal");

@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
+import { Loader2 } from "lucide-react";
 import { Vendor, useCreateVendor, useUpdateVendor } from "@/hooks/useVendors";
 import { useBranches } from "@/hooks/useBranches";
 
@@ -19,7 +20,7 @@ const vendorSchema = z.object({
   whatsapp_number: z.string().min(1, "WhatsApp number is required"),
   category: z.string().optional(),
   notes: z.string().optional(),
-  branch_links: z.array(z.string()).min(1, "Assign vendor to at least one branch"),
+  branch_ids: z.array(z.string()).min(1, "Assign vendor to at least one branch"),
 });
 
 type VendorFormValues = z.infer<typeof vendorSchema>;
@@ -36,6 +37,8 @@ export default function VendorForm({ isOpen, onClose, vendorToEdit }: VendorForm
   const updateMutation = useUpdateVendor();
   const { data: branches, isLoading: branchesLoading } = useBranches();
 
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   const form = useForm<VendorFormValues>({
     resolver: zodResolver(vendorSchema),
     defaultValues: {
@@ -44,48 +47,81 @@ export default function VendorForm({ isOpen, onClose, vendorToEdit }: VendorForm
       whatsapp_number: "",
       category: "",
       notes: "",
-      branch_links: [],
+      branch_ids: [],
     },
   });
 
-  // Reset form when modal state changes
   useEffect(() => {
     if (isOpen) {
+      setSubmitError(null);
       if (vendorToEdit) {
-        // Extract array of branch IDs from the complex relationships object
         const linkedBranchIds = vendorToEdit.branch_links?.map(link => link.branch_id) || [];
-        
         form.reset({
           name: vendorToEdit.name,
           phone: vendorToEdit.phone || "",
           whatsapp_number: vendorToEdit.whatsapp_number,
           category: vendorToEdit.category || "",
           notes: vendorToEdit.notes || "",
-          branch_links: linkedBranchIds,
+          branch_ids: linkedBranchIds,
         });
       } else {
-        form.reset({ 
-          name: "", phone: "", whatsapp_number: "", category: "", notes: "", branch_links: [] 
+        form.reset({
+          name: "", phone: "", whatsapp_number: "", category: "", notes: "", branch_ids: []
         });
       }
     }
   }, [isOpen, vendorToEdit, form]);
 
   const onSubmit = (data: VendorFormValues) => {
+    setSubmitError(null);
+    const { branch_ids, ...rest } = data;
+    // API expects branch_ids — form field was renamed to match
+    const payload = { ...rest, branch_ids };
+
+    console.log("[VendorForm] Submitting payload =>", payload);
+
     if (isEditing) {
       updateMutation.mutate(
-        { id: vendorToEdit.id, ...(data as any) },
-        { onSuccess: () => onClose() }
+        { id: vendorToEdit!.id, ...payload },
+        {
+          onSuccess: (res) => {
+            console.log("[VendorForm] Update success =>", res);
+            toast.success("Vendor updated successfully");
+            onClose();
+          },
+          onError: (err: any) => {
+            console.error("[VendorForm] Update error =>", err.response?.data || err);
+            const msg = err.response?.data?.message || err.message || "Failed to update vendor";
+            setSubmitError(msg);
+            toast.error(msg);
+          },
+        }
       );
     } else {
-      createMutation.mutate(data as any, { onSuccess: () => onClose() });
+      createMutation.mutate(
+        payload as any,
+        {
+          onSuccess: (res) => {
+            console.log("[VendorForm] Create success =>", res);
+            toast.success("Vendor created successfully");
+            onClose();
+          },
+          onError: (err: any) => {
+            console.error("[VendorForm] Create error =>", err.response?.data || err);
+            const msg = err.response?.data?.message || err.message || "Failed to create vendor";
+            setSubmitError(msg);
+            toast.error(msg);
+          },
+        }
+      );
     }
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending;
+  const watchedBranchIds = form.watch("branch_ids");
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !isPending && onClose()}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Edit Vendor" : "Add New Vendor"}</DialogTitle>
@@ -93,9 +129,15 @@ export default function VendorForm({ isOpen, onClose, vendorToEdit }: VendorForm
             {isEditing ? "Update supplier details." : "Register a new supplier to the system. WhatsApp is required for sending inventory requests."}
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-2">
-          
+
+          {submitError && (
+            <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+              {submitError}
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="name" className="text-xs font-semibold uppercase text-gray-500">Business/Vendor Name *</Label>
             <Input id="name" placeholder="e.g. Hamza Melamine" {...form.register("name")} className="h-11" />
@@ -108,7 +150,7 @@ export default function VendorForm({ isOpen, onClose, vendorToEdit }: VendorForm
               <Input id="whatsapp_number" placeholder="e.g. +923000000000" {...form.register("whatsapp_number")} className="h-11" />
               {form.formState.errors.whatsapp_number && <p className="text-xs text-red-500">{form.formState.errors.whatsapp_number.message}</p>}
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="phone" className="text-xs font-semibold uppercase text-gray-500">Phone (Alt)</Label>
               <Input id="phone" placeholder="Optional" {...form.register("phone")} className="h-11" />
@@ -131,34 +173,35 @@ export default function VendorForm({ isOpen, onClose, vendorToEdit }: VendorForm
                 <div className="space-y-3">
                   {branches?.map((branch) => (
                     <div key={branch.id} className="flex flex-row items-start space-x-3">
-                      <Checkbox 
+                      <Checkbox
                         id={`branch-${branch.id}`}
-                        checked={form.watch("branch_links").includes(branch.id)}
+                        checked={watchedBranchIds.includes(branch.id)}
                         onCheckedChange={(checked) => {
-                          const currentValues = form.watch("branch_links");
-                          if (checked) {
-                            form.setValue("branch_links", [...currentValues, branch.id], { shouldValidate: true });
-                          } else {
-                            form.setValue("branch_links", currentValues.filter(id => id !== branch.id), { shouldValidate: true });
-                          }
+                          const current = form.getValues("branch_ids");
+                          form.setValue(
+                            "branch_ids",
+                            checked ? [...current, branch.id] : current.filter(id => id !== branch.id),
+                            { shouldValidate: true }
+                          );
                         }}
                       />
-                      <div className="grid leading-none">
-                        <label htmlFor={`branch-${branch.id}`} className="text-sm font-medium leading-none cursor-pointer">
-                          {branch.name}
-                        </label>
-                      </div>
+                      <label htmlFor={`branch-${branch.id}`} className="text-sm font-medium leading-none cursor-pointer">
+                        {branch.name}
+                      </label>
                     </div>
                   ))}
                 </div>
               )}
             </div>
-            {form.formState.errors.branch_links && <p className="text-xs text-red-500">{form.formState.errors.branch_links.message}</p>}
+            {form.formState.errors.branch_ids && (
+              <p className="text-xs text-red-500">{form.formState.errors.branch_ids.message}</p>
+            )}
           </div>
 
           <div className="flex justify-end space-x-2 pt-6">
             <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>Cancel</Button>
             <Button type="submit" className="bg-[#1B2A4A] hover:bg-slate-800" disabled={isPending}>
+              {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {isPending ? "Saving..." : "Save Vendor"}
             </Button>
           </div>

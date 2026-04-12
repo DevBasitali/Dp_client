@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Plus, Trash2, Camera, Loader2, ClipboardList } from "lucide-react";
+import { toast } from "sonner";
 import Link from "next/link";
 
 const orderSchema = z.object({
@@ -75,22 +76,30 @@ export default function PlaceVendorOrderPage() {
 
   const onSubmit = (data: z.infer<typeof orderSchema>) => {
     if (!data.vendor_id || (!isManager && !data.branch_id)) {
-      alert("Please ensure branch and vendor are selected.");
+      toast.error("Please ensure branch and vendor are selected.");
       return;
     }
 
-    createMutation.mutate({
+    const payload = {
       vendor_id: data.vendor_id,
-      branch_id: data.branch_id,
+      branch_id: data.branch_id || (isManager ? user.branchId ?? undefined : undefined),
       notes: data.notes,
       items: data.items,
       images,
-    }, {
-      onSuccess: () => {
-        router.push("/vendor-orders");
+    };
+
+    console.log("[VendorOrder] Submitting =>", { ...payload, images: images.map(f => f?.name) });
+
+    createMutation.mutate(payload, {
+      onSuccess: (res) => {
+        console.log("[VendorOrder] Success =>", res);
+        toast.success("Inventory request sent!");
+        router.push(isManager ? "/branch-dashboard" : "/vendor-orders");
       },
       onError: (err: any) => {
-        alert(err.response?.data?.message || "Failed to place order.");
+        console.error("[VendorOrder] Error =>", err.response?.data || err);
+        const msg = err.response?.data?.message || "Failed to place order.";
+        toast.error(msg);
       }
     });
   };

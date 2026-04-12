@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm, useWatch } from "react-hook-form";
+import { useForm, useFieldArray, useWatch, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -14,105 +14,144 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Loader2, Save, Calculator } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Calculator, Plus, X } from "lucide-react";
+import { toast } from "sonner";
 import Link from "next/link";
 import { format } from "date-fns";
-import { useEffect, useState } from "react";
+
+const expenseSchema = z.object({
+  description: z.string().min(1, "Description is required"),
+  amount: z.number().positive("Must be greater than 0"),
+  source: z.enum(["SALE", "CAL"]),
+});
 
 const closingSchema = z.object({
-  branch_id: z.string().optional(),
-  closing_date: z.string().min(1, "Date is required"),
-  cash_sales: z.number().min(0, "Cannot be negative"),
-  easypaisa_sales: z.number().min(0, "Cannot be negative"),
-  daily_expense: z.number().min(0, "Cannot be negative"),
+  branchId: z.string().optional(),
+  closingDate: z.string().min(1, "Date is required"),
+  cashSales: z.number().min(0, "Cannot be negative"),
+  easypaisaSales: z.number().min(0, "Cannot be negative"),
   notes: z.string().optional(),
+  expenses: z.array(expenseSchema),
 });
+
+type ClosingFormValues = z.infer<typeof closingSchema>;
+
+const formatMoney = (amount: number) =>
+  `Rs. ${Number(isNaN(amount) ? 0 : amount).toLocaleString("en-PK")}`;
 
 export default function DailyClosingFormPage() {
   const router = useRouter();
   const { user } = useAuthStore();
   const isManager = user?.role === "branch_manager";
-  
+
   const { data: branches } = useBranches();
   const createMutation = useCreateDailyClosing();
 
-  const { register, control, handleSubmit, setValue, formState: { errors } } = useForm<z.infer<typeof closingSchema>>({
+  const {
+    register,
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<ClosingFormValues>({
     resolver: zodResolver(closingSchema),
     defaultValues: {
-      branch_id: isManager ? (user.branchId || "") : "",
-      closing_date: format(new Date(), 'yyyy-MM-dd'),
-      cash_sales: 0,
-      easypaisa_sales: 0,
-      daily_expense: 0,
-    }
+      branchId: isManager ? (user?.branchId ?? "") : "",
+      closingDate: format(new Date(), "yyyy-MM-dd"),
+      cashSales: 0,
+      easypaisaSales: 0,
+      notes: "",
+      expenses: [] as { description: string; amount: number; source: "SALE" | "CAL" }[],
+    },
   });
 
-  // Watch fields for live calculation
-  const cashSales = useWatch({ control, name: "cash_sales", defaultValue: 0 });
-  const easypaisaSales = useWatch({ control, name: "easypaisa_sales", defaultValue: 0 });
-  const dailyExpense = useWatch({ control, name: "daily_expense", defaultValue: 0 });
+  const { fields, append, remove } = useFieldArray({ control, name: "expenses" });
 
-  const [totalSales, setTotalSales] = useState(0);
-  const [netTotal, setNetTotal] = useState(0);
+  // Watch all fields for live calculation
+  const cashSales = useWatch({ control, name: "cashSales", defaultValue: 0 });
+  const easypaisaSales = useWatch({ control, name: "easypaisaSales", defaultValue: 0 });
+  const expenses = useWatch({ control, name: "expenses", defaultValue: [] });
 
-  useEffect(() => {
-    // Safety fallback to prevent NaN if empty input
-    const cash = isNaN(cashSales) ? 0 : cashSales;
-    const eps = isNaN(easypaisaSales) ? 0 : easypaisaSales;
-    const exp = isNaN(dailyExpense) ? 0 : dailyExpense;
+  const cash = isNaN(Number(cashSales)) ? 0 : Number(cashSales);
+  const eps = isNaN(Number(easypaisaSales)) ? 0 : Number(easypaisaSales);
+  const totalSales = cash + eps;
 
-    const total = cash + eps;
-    setTotalSales(total);
-    setNetTotal(total - exp);
-  }, [cashSales, easypaisaSales, dailyExpense]);
+  const saleExpenses = expenses
+    .filter((e) => e.source === "SALE")
+    .reduce((sum, e) => sum + (isNaN(Number(e.amount)) ? 0 : Number(e.amount)), 0);
 
-  const formatMoney = (amount: number) => {
-    return `Rs. ${Number(amount).toLocaleString('en-PK')}`;
-  };
+  const calExpenses = expenses
+    .filter((e) => e.source === "CAL")
+    .reduce((sum, e) => sum + (isNaN(Number(e.amount)) ? 0 : Number(e.amount)), 0);
 
-  const onSubmit = (data: z.infer<typeof closingSchema>) => {
-    if (!isManager && !data.branch_id) {
-      alert("Please select a branch.");
+  const registerTotal = totalSales + saleExpenses;
+  const physicalToBox = totalSales - saleExpenses;
+
+  const onSubmit = (data: ClosingFormValues) => {
+    if (!isManager && !data.branchId) {
+      toast.error("Please select a branch.");
       return;
     }
 
-    createMutation.mutate(data, {
+    const payload = {
+      branchId: isManager ? (user?.branchId ?? undefined) : data.branchId,
+      closingDate: data.closingDate,
+      cashSales: data.cashSales,
+      easypaisaSales: data.easypaisaSales,
+      notes: data.notes || undefined,
+      expenses: data.expenses,
+    };
+
+    createMutation.mutate(payload, {
       onSuccess: () => {
-        router.push("/daily-closings");
+        toast.success("Daily closing submitted successfully!");
+        router.push(isManager ? "/branch-dashboard" : "/daily-closings");
       },
       onError: (err: any) => {
-        alert(err.response?.data?.message || "Failed to submit closing. You might have already submitted for today or the month is locked.");
-      }
+        const status = err.response?.status;
+        const msg = err.response?.data?.message;
+        if (status === 409) {
+          toast.error("Entry already exists for this date.");
+        } else if (status === 400 && msg) {
+          toast.error(msg);
+        } else {
+          toast.error(msg || "Failed to submit. Please try again.");
+        }
+      },
     });
   };
 
   return (
-    <div className="space-y-6 lg:p-4 max-w-3xl mx-auto pb-24">
+    <div className="space-y-6 lg:p-4 max-w-4xl mx-auto pb-28">
+      {/* Header */}
       <div className="flex items-center space-x-4">
-        <Link href="/daily-closings">
+        <Link href={isManager ? "/branch-dashboard" : "/daily-closings"}>
           <Button variant="ghost" size="icon" className="h-10 w-10 text-gray-500 hover:text-black">
             <ArrowLeft className="w-6 h-6" />
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-[#1A1A2E] flex items-center">
-            Daily Closing Entry
-          </h1>
-          <p className="text-gray-500 text-sm">Record end-of-day cash and digital sales.</p>
+          <h1 className="text-2xl font-bold text-[#1A1A2E]">Daily Closing Entry</h1>
+          <p className="text-gray-500 text-sm">Record end-of-day sales and expenses.</p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+
+        {/* Section 1 — Sales */}
         <Card className="shadow-sm border-0">
-          <CardContent className="p-6 space-y-6">
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent className="p-6 space-y-5">
+            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">
+              Sales
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {!isManager && (
                 <div className="space-y-2">
-                  <Label htmlFor="branch">Select Branch <span className="text-red-500">*</span></Label>
-                  <Select onValueChange={(val: string | null) => val && setValue("branch_id", val)}>
-                    <SelectTrigger id="branch" className={errors.branch_id ? "border-red-500" : ""}>
-                      <SelectValue placeholder="Which branch?" />
+                  <Label>Branch <span className="text-red-500">*</span></Label>
+                  <Select onValueChange={(val: string | null) => val && setValue("branchId", val)}>
+                    <SelectTrigger className={errors.branchId ? "border-red-500" : ""}>
+                      <SelectValue placeholder="Select branch" />
                     </SelectTrigger>
                     <SelectContent>
                       {branches?.map((b) => (
@@ -124,107 +163,229 @@ export default function DailyClosingFormPage() {
               )}
 
               <div className="space-y-2">
-                <Label>Closing Date</Label>
-                <Input 
+                <Label>Closing Date <span className="text-red-500">*</span></Label>
+                <Input
                   type="date"
-                  {...register("closing_date")}
-                  className={errors.closing_date ? "border-red-500" : ""}
+                  {...register("closingDate")}
+                  className={errors.closingDate ? "border-red-500" : ""}
                 />
+                {errors.closingDate && (
+                  <p className="text-xs text-red-500">{errors.closingDate.message}</p>
+                )}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-gray-100">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Cash Sales (PKR) <span className="text-red-500">*</span></Label>
-                  <Input 
-                    type="number" 
-                    min="0"
-                    placeholder="0"
-                    {...register("cash_sales", { valueAsNumber: true })}
-                    className="text-lg font-mono placeholder:font-sans focus:border-[#F0A500]"
-                  />
-                  {errors.cash_sales && <p className="text-xs text-red-500">{errors.cash_sales.message}</p>}
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>EasyPaisa Sales (PKR) <span className="text-red-500">*</span></Label>
-                  <Input 
-                    type="number" 
-                    min="0"
-                    placeholder="0"
-                    {...register("easypaisa_sales", { valueAsNumber: true })}
-                    className="text-lg font-mono placeholder:font-sans focus:border-[#F0A500]"
-                  />
-                  {errors.easypaisa_sales && <p className="text-xs text-red-500">{errors.easypaisa_sales.message}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Daily Expenses (PKR) <span className="text-red-500">*</span></Label>
-                  <Input 
-                    type="number" 
-                    min="0"
-                    placeholder="0"
-                    {...register("daily_expense", { valueAsNumber: true })}
-                    className="text-lg font-mono text-red-600 placeholder:text-gray-400 focus:border-red-500"
-                  />
-                  {errors.daily_expense && <p className="text-xs text-red-500">{errors.daily_expense.message}</p>}
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Cash Sales (PKR) <span className="text-red-500">*</span></Label>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  {...register("cashSales", { valueAsNumber: true })}
+                  className={`text-lg font-mono placeholder:font-sans ${errors.cashSales ? "border-red-500" : "focus:border-[#F0A500]"}`}
+                />
+                {errors.cashSales && (
+                  <p className="text-xs text-red-500">{errors.cashSales.message}</p>
+                )}
               </div>
 
-              {/* Live Calculation Panel */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-center space-y-4">
-                <h3 className="text-sm font-semibold text-slate-500 uppercase flex items-center mb-2">
-                  <Calculator className="w-4 h-4 mr-2" /> Live Calculation
-                </h3>
-                
-                <div>
-                  <p className="text-sm text-slate-600 font-medium">Total Sales (Cash + EP)</p>
-                  <p className="text-2xl font-bold text-[#1B2A4A] tracking-tight">{formatMoney(totalSales)}</p>
-                </div>
-
-                <div className="pt-3 border-t border-slate-200">
-                  <p className="text-sm text-slate-600 font-medium mb-1">Net Batchat (Total - Exp)</p>
-                  <p className={`text-3xl font-black tracking-tighter ${netTotal < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                    {formatMoney(netTotal)}
-                  </p>
-                </div>
+              <div className="space-y-2">
+                <Label>EasyPaisa Sales (PKR) <span className="text-red-500">*</span></Label>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  {...register("easypaisaSales", { valueAsNumber: true })}
+                  className={`text-lg font-mono placeholder:font-sans ${errors.easypaisaSales ? "border-red-500" : "focus:border-[#F0A500]"}`}
+                />
+                {errors.easypaisaSales && (
+                  <p className="text-xs text-red-500">{errors.easypaisaSales.message}</p>
+                )}
               </div>
             </div>
-
-            <div className="space-y-2 pt-4 border-t border-gray-100">
-              <Label>Extra Notes</Label>
-              <Textarea 
-                placeholder="Reason for high expenses..." 
-                className="resize-none"
-                {...register("notes")}
-              />
-            </div>
-            
           </CardContent>
         </Card>
 
-        {/* Fixed bottom bar for Mobile-first pattern */}
+        {/* Section 2 — Expenses */}
+        <Card className="shadow-sm border-0">
+          <CardContent className="p-6 space-y-4">
+            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">
+              Expenses
+            </h2>
+
+            {fields.length === 0 && (
+              <p className="text-sm text-gray-400 italic">No expenses added yet.</p>
+            )}
+
+            <div className="space-y-3">
+              {fields.map((field, index) => (
+                <div
+                  key={field.id}
+                  className="grid grid-cols-[1fr_140px_130px_36px] gap-2 items-start"
+                >
+                  {/* Description */}
+                  <div>
+                    <Input
+                      placeholder="e.g. Workers lunch"
+                      {...register(`expenses.${index}.description`)}
+                      className={errors.expenses?.[index]?.description ? "border-red-500" : ""}
+                    />
+                    {errors.expenses?.[index]?.description && (
+                      <p className="text-xs text-red-500 mt-1">
+                        {errors.expenses[index]?.description?.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Amount */}
+                  <div>
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="Amount"
+                      {...register(`expenses.${index}.amount`, { valueAsNumber: true })}
+                      className={`font-mono ${errors.expenses?.[index]?.amount ? "border-red-500" : ""}`}
+                    />
+                    {errors.expenses?.[index]?.amount && (
+                      <p className="text-xs text-red-500 mt-1">
+                        {errors.expenses[index]?.amount?.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Source */}
+                  <div>
+                    <Controller
+                      control={control}
+                      name={`expenses.${index}.source`}
+                      render={({ field: f }) => (
+                        <Select value={f.value} onValueChange={(val: string | null) => val && f.onChange(val)}>
+                          <SelectTrigger
+                            className={errors.expenses?.[index]?.source ? "border-red-500" : ""}
+                          >
+                            <SelectValue placeholder="Source" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="SALE">FROM SALE</SelectItem>
+                            <SelectItem value="CAL">FROM CAL</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    {errors.expenses?.[index]?.source && (
+                      <p className="text-xs text-red-500 mt-1">
+                        {errors.expenses[index]?.source?.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Remove */}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-9 text-red-400 hover:text-red-600 hover:bg-red-50 mt-0"
+                    onClick={() => remove(index)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="border-dashed border-[#1B2A4A] text-[#1B2A4A] hover:bg-slate-50"
+              onClick={() => append({ description: "", amount: 0, source: "SALE" })}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Expense
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Section 3 — Notes */}
+        <Card className="shadow-sm border-0">
+          <CardContent className="p-6 space-y-2">
+            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">
+              Notes
+            </h2>
+            <Textarea
+              placeholder="Any extra notes for today..."
+              className="resize-none"
+              {...register("notes")}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Live Calculation Card */}
+        <Card className="shadow-sm border-0 bg-slate-50">
+          <CardContent className="p-6">
+            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide flex items-center mb-4">
+              <Calculator className="w-4 h-4 mr-2" />
+              Live Calculation
+            </h2>
+
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-slate-600">Total Sales</span>
+                <span className="font-semibold text-slate-800 font-mono">
+                  {formatMoney(totalSales)}
+                </span>
+              </div>
+
+              <div className="border-t border-slate-200 pt-3 flex justify-between items-center">
+                <span className="text-sm text-slate-600">Sale Expenses</span>
+                <span className="font-semibold text-slate-700 font-mono">
+                  {formatMoney(saleExpenses)}
+                </span>
+              </div>
+
+              <div className="border-t border-slate-300 pt-3 flex justify-between items-center">
+                <span className="text-sm font-semibold text-[#1B2A4A]">Written to Register</span>
+                <span className="text-xl font-black text-[#1B2A4A] font-mono tracking-tight">
+                  {formatMoney(registerTotal)}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-semibold text-green-700">Physical to Box</span>
+                <span className="text-xl font-black text-green-600 font-mono tracking-tight">
+                  {formatMoney(physicalToBox)}
+                </span>
+              </div>
+
+              <div className="border-t border-slate-200 pt-3 flex justify-between items-center">
+                <div>
+                  <span className="text-sm text-slate-500">Cal Expenses</span>
+                  <p className="text-xs text-slate-400">(reduces Cal Box balance)</p>
+                </div>
+                <span className="font-semibold text-slate-500 font-mono">
+                  {formatMoney(calExpenses)}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Submit bar */}
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t z-10 md:static md:bg-transparent md:border-0 md:p-0">
-          <div className="max-w-3xl mx-auto flex items-center justify-between">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
             <span className="text-sm font-medium text-gray-500 hidden md:inline">
               Double check values before submitting
             </span>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full md:w-64 h-14 bg-[#1B2A4A] hover:bg-slate-800 text-white shadow-xl md:shadow-md"
               disabled={createMutation.isPending}
             >
               {createMutation.isPending ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Saving...
-                </>
+                <><Loader2 className="w-5 h-5 mr-2 animate-spin" />Saving...</>
               ) : (
-                <>
-                  <Save className="w-5 h-5 mr-2" />
-                  Submit Daily Closing
-                </>
+                <><Save className="w-5 h-5 mr-2" />Submit Daily Closing</>
               )}
             </Button>
           </div>

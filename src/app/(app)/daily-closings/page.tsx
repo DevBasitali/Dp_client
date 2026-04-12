@@ -12,15 +12,12 @@ import { format } from "date-fns";
 export default function DailyClosingsPage() {
   const { user } = useAuthStore();
   const isManager = user?.role === "branch_manager";
-  
-  // Filter natively if manager
-  const filters = isManager ? { branchId: user.branchId ?? undefined } : {};
+
+  const filters = isManager ? { branchId: user?.branchId ?? undefined } : {};
   const { data: closings, isLoading, isError } = useDailyClosings(filters);
 
-  // Format money helper
-  const formatMoney = (amount: number) => {
-    return `Rs. ${Number(amount).toLocaleString('en-PK')}`;
-  };
+  const formatMoney = (amount: number) =>
+    `Rs. ${Number(amount).toLocaleString("en-PK")}`;
 
   return (
     <div className="space-y-6 lg:p-4">
@@ -71,32 +68,32 @@ export default function DailyClosingsPage() {
                     {!isManager && <TableHead className="font-semibold text-gray-700">Branch</TableHead>}
                     <TableHead className="font-semibold text-gray-700 text-right">Cash</TableHead>
                     <TableHead className="font-semibold text-gray-700 text-right">EasyPaisa</TableHead>
-                    <TableHead className="font-semibold text-gray-700 text-right text-red-600">Expenses</TableHead>
-                    <TableHead className="font-semibold text-gray-700 text-right">Net Total</TableHead>
+                    <TableHead className="font-semibold text-gray-700 text-right text-[#1B2A4A]">Register</TableHead>
+                    <TableHead className="font-semibold text-gray-700 text-right text-green-700">Physical to Box</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {closings?.map((closing) => (
                     <TableRow key={closing.id} className="hover:bg-slate-50 transition-colors">
                       <TableCell className="font-medium text-[#1A1A2E]">
-                        {format(new Date(closing.closing_date), "dd MMM yyyy")}
+                        {format(new Date(closing.closingDate), "dd MMM yyyy")}
                       </TableCell>
                       {!isManager && (
                         <TableCell className="text-gray-600">
                           {closing.branch?.name || "—"}
                         </TableCell>
                       )}
-                      <TableCell className="text-right text-gray-600">
-                        {formatMoney(closing.cash_sales)}
+                      <TableCell className="text-right text-gray-600 font-mono text-sm">
+                        {formatMoney(Number(closing.cashSales))}
                       </TableCell>
-                      <TableCell className="text-right text-gray-600">
-                        {formatMoney(closing.easypaisa_sales)}
+                      <TableCell className="text-right text-gray-600 font-mono text-sm">
+                        {formatMoney(Number(closing.easypaisaSales))}
                       </TableCell>
-                      <TableCell className="text-right text-red-600 font-medium font-mono text-sm tracking-tighter">
-                        -{formatMoney(closing.daily_expense)}
+                      <TableCell className="text-right font-bold text-[#1B2A4A] font-mono text-sm tracking-tight">
+                        {formatMoney(Number(closing.registerTotal))}
                       </TableCell>
-                      <TableCell className="text-right font-bold text-[#1B2A4A] tracking-tight">
-                        {formatMoney(closing.net_total)}
+                      <TableCell className="text-right font-bold text-green-600 font-mono text-sm tracking-tight">
+                        {formatMoney(Number(closing.physicalToBox))}
                       </TableCell>
                     </TableRow>
                   ))}

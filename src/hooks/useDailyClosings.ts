@@ -1,20 +1,37 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 
+export interface DailyExpense {
+  id: string;
+  description: string;
+  amount: number;
+  source: 'SALE' | 'CAL';
+  createdAt: string;
+}
+
 export interface DailyClosing {
   id: string;
-  branch_id: string;
-  entered_by: string;
-  closing_date: string;
-  cash_sales: number;
-  easypaisa_sales: number;
-  daily_expense: number;
-  total_sales: number;
-  net_total: number;
+  branchId: string;
+  enteredBy: string;
+  closingDate: string;
+  cashSales: number;
+  easypaisaSales: number;
+  totalSales: number;
+  registerTotal: number;
+  physicalToBox: number;
   notes?: string;
-  created_at: string;
-  branch?: { name: string };
-  user?: { name: string };
+  createdAt: string;
+  expenses: DailyExpense[];
+  branch?: { id: string; name: string };
+}
+
+export interface CreateDailyClosingPayload {
+  branchId?: string;
+  closingDate: string;
+  cashSales: number;
+  easypaisaSales: number;
+  notes?: string;
+  expenses: { description: string; amount: number; source: 'SALE' | 'CAL' }[];
 }
 
 export const useDailyClosings = (filters?: { branchId?: string; month?: number; year?: number }) => {
@@ -25,7 +42,6 @@ export const useDailyClosings = (filters?: { branchId?: string; month?: number; 
       if (filters?.branchId) params.append('branchId', filters.branchId);
       if (filters?.month) params.append('month', filters.month.toString());
       if (filters?.year) params.append('year', filters.year.toString());
-      
       const { data } = await api.get(`/daily-closings?${params.toString()}`);
       return (data.data || []) as DailyClosing[];
     },
@@ -34,10 +50,9 @@ export const useDailyClosings = (filters?: { branchId?: string; month?: number; 
 
 export const useCreateDailyClosing = () => {
   const queryClient = useQueryClient();
-  
   return useMutation({
-    mutationFn: async (closingData: Partial<DailyClosing>) => {
-      const { data } = await api.post('/daily-closings', closingData);
+    mutationFn: async (payload: CreateDailyClosingPayload) => {
+      const { data } = await api.post('/daily-closings', payload);
       return data;
     },
     onSuccess: () => {
@@ -49,10 +64,9 @@ export const useCreateDailyClosing = () => {
 
 export const useUpdateDailyClosing = () => {
   const queryClient = useQueryClient();
-  
   return useMutation({
-    mutationFn: async ({ id, ...closingData }: Partial<DailyClosing> & { id: string }) => {
-      const { data } = await api.put(`/daily-closings/${id}`, closingData);
+    mutationFn: async ({ id, ...payload }: CreateDailyClosingPayload & { id: string }) => {
+      const { data } = await api.put(`/daily-closings/${id}`, payload);
       return data;
     },
     onSuccess: () => {
@@ -70,10 +84,9 @@ export const useDailySummary = (filters?: { branchId?: string; month?: number; y
       if (filters?.branchId) params.append('branchId', filters.branchId);
       if (filters?.month) params.append('month', filters.month.toString());
       if (filters?.year) params.append('year', filters.year.toString());
-      
       const { data } = await api.get(`/daily-closings/summary?${params.toString()}`);
       return data.data;
     },
-    enabled: !!filters?.month && !!filters?.year, // Only query if month/year are picked
+    enabled: !!filters?.month && !!filters?.year,
   });
 };
