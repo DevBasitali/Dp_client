@@ -5,7 +5,7 @@ import { useAuthStore } from "@/store/authStore";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Wallet, Plus, Loader2 } from "lucide-react";
+import { Wallet, Plus, Loader2, Pencil } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 
@@ -70,6 +70,7 @@ export default function DailyClosingsPage() {
                     <TableHead className="font-semibold text-gray-700 text-right">EasyPaisa</TableHead>
                     <TableHead className="font-semibold text-gray-700 text-right text-[#1B2A4A]">Register</TableHead>
                     <TableHead className="font-semibold text-gray-700 text-right text-green-700">Physical to Box</TableHead>
+                    <TableHead className="font-semibold text-gray-700 text-right w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -94,6 +95,19 @@ export default function DailyClosingsPage() {
                       </TableCell>
                       <TableCell className="text-right font-bold text-green-600 font-mono text-sm tracking-tight">
                         {formatMoney(Number(closing.physicalToBox))}
+                      </TableCell>
+                      <TableCell className="text-right p-2">
+                        {(!isManager || format(new Date(closing.closingDate), "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd")) ? (
+                          <Link href={`/daily-closings/${closing.id}/edit`}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Pencil className="w-4 h-4 text-gray-500 hover:text-[#1B2A4A]" />
+                            </Button>
+                          </Link>
+                        ) : (
+                          <Button variant="ghost" size="icon" disabled className="h-8 w-8">
+                            <Pencil className="w-4 h-4 text-gray-300" />
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

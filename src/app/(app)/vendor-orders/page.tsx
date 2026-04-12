@@ -1,17 +1,46 @@
 "use client";
 
+import { useState } from "react";
 import { useVendorOrders } from "@/hooks/useVendorOrders";
 import { useAuthStore } from "@/store/authStore";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ClipboardList, Plus, Loader2, Download, CheckCircle2, XCircle } from "lucide-react";
+import { ClipboardList, Plus, Loader2, Download, CheckCircle2, XCircle, Pencil } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 export default function VendorOrdersPage() {
   const { user } = useAuthStore();
   const isManager = user?.role === "branch_manager";
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const handleDownload = async (orderId: string) => {
+    try {
+      setDownloadingId(orderId);
+      const { data } = await api.get(`/vendor-orders/${orderId}/download`, {
+        responseType: "blob",
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `Order_${orderId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Download failed:", err);
+      toast.error("Failed to download PDF. Please try again.");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
   
   // If manager, we might need to filter by their branch, 
   // but let's assume backend scopes it or we request it explicitly
@@ -67,7 +96,7 @@ export default function VendorOrdersPage() {
                     <TableHead className="font-semibold text-gray-700">Vendor</TableHead>
                     <TableHead className="font-semibold text-gray-700 text-center">Items</TableHead>
                     <TableHead className="font-semibold text-gray-700 text-center">WhatsApp</TableHead>
-                    <TableHead className="text-right font-semibold text-gray-700">Action</TableHead>
+                    <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -95,24 +124,38 @@ export default function VendorOrdersPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        {order.pdf_url ? (
-                          <a 
-                            href={order.pdf_url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                          >
+                        <div className="flex justify-end items-center gap-2">
+                          {order.pdf_url ? (
                             <Button 
                               variant="outline" 
                               size="sm"
                               className="h-8 shadow-sm text-blue-600 border-blue-100 bg-blue-50 hover:bg-blue-100"
+                              onClick={() => handleDownload(order.id)}
+                              disabled={downloadingId === order.id}
                             >
-                              <Download className="w-4 h-4 mr-1" />
+                              {downloadingId === order.id ? (
+                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                              ) : (
+                                <Download className="w-4 h-4 mr-1" />
+                              )}
                               PDF
                             </Button>
-                          </a>
-                        ) : (
-                          <span className="text-xs text-slate-400">Processing</span>
-                        )}
+                          ) : (
+                            <span className="text-xs text-slate-400">Processing</span>
+                          )}
+
+                          {(!isManager || (new Date().getTime() - new Date(order.created_at).getTime()) < 5 * 60 * 60 * 1000) ? (
+                            <Link href={`/vendor-orders/${order.id}/edit`}>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Pencil className="w-4 h-4 text-gray-500 hover:text-[#1B2A4A]" />
+                              </Button>
+                            </Link>
+                          ) : (
+                            <Button variant="ghost" size="icon" disabled className="h-8 w-8">
+                              <Pencil className="w-4 h-4 text-gray-300" />
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

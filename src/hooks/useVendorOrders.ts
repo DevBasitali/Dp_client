@@ -78,3 +78,38 @@ export const useCreateVendorOrder = () => {
     },
   });
 };
+
+export const useUpdateVendorOrder = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (orderData: { id: string, vendor_id: string, branch_id?: string, notes?: string, items: { id?: string, item_name: string, quantity: number, image_url?: string }[], images: (File | null)[] }) => {
+      const formData = new FormData();
+      formData.append('vendorId', orderData.vendor_id);
+      if (orderData.branch_id) formData.append('branchId', orderData.branch_id);
+      if (orderData.notes) formData.append('notes', orderData.notes);
+      
+      const mappedItems = orderData.items.map(it => ({ id: it.id, itemName: it.item_name, quantity: it.quantity, image_url: it.image_url }));
+      formData.append('items', JSON.stringify(mappedItems));
+      
+      if (orderData.images) {
+        orderData.images.forEach((file, index) => {
+          if (file) {
+            formData.append(`items[${index}][image]`, file);
+          }
+        });
+      }
+
+      const { data } = await api.put(`/vendor-orders/${orderData.id}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['vendor-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['vendor-order', variables.id] });
+    },
+  });
+};
