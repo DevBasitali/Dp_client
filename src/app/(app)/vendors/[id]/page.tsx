@@ -44,7 +44,7 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
   const [showInventoryModal, setShowInventoryModal] = useState(false);
   const [invAmount, setInvAmount] = useState("");
   const [invDescription, setInvDescription] = useState("");
-  const [invBranchId, setInvBranchId] = useState("");
+  const [invBranchId, setInvBranchId] = useState<string | null>(null);
   const [invDate, setInvDate] = useState(format(new Date(), "yyyy-MM-dd"));
 
   const totalBilled =
@@ -77,7 +77,7 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
     recordInventory.mutate(
       {
         vendorId: id,
-        branchId: invBranchId,
+        branchId: invBranchId as string,
         amount,
         description: invDescription.trim(),
         date: invDate,
@@ -88,7 +88,7 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
           setShowInventoryModal(false);
           setInvAmount("");
           setInvDescription("");
-          setInvBranchId("");
+          setInvBranchId(null);
           setInvDate(format(new Date(), "yyyy-MM-dd"));
         },
         onError: (err: any) => {
@@ -303,7 +303,7 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
 
             <div className="space-y-2">
               <Label>Branch <span className="text-red-500">*</span></Label>
-              <Select value={invBranchId} onValueChange={setInvBranchId}>
+              <Select value={invBranchId ?? ""} onValueChange={(value) => setInvBranchId(value ?? null)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select branch" />
                 </SelectTrigger>
