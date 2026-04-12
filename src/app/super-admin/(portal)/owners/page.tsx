@@ -4,16 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { saApi } from "@/lib/saApi";
-import { Loader2, ExternalLink } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 interface Owner {
-  id: number;
+  id: string;
   name: string;
   email: string;
-  status: string;
-  branchCount: number;
-  userCount: number;
-  vendorCount: number;
+  accountStatus: string;
+  is_active: boolean;
   created_at: string;
 }
 
@@ -22,8 +20,8 @@ type FilterTab = "all" | "approved" | "pending" | "banned";
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     approved: "bg-green-100 text-green-700",
-    pending: "bg-amber-100 text-amber-700",
-    banned: "bg-red-100 text-red-700",
+    pending:  "bg-amber-100 text-amber-700",
+    banned:   "bg-red-100 text-red-700",
   };
   return (
     <span
@@ -46,10 +44,10 @@ function formatDate(iso: string) {
 }
 
 const TABS: { key: FilterTab; label: string }[] = [
-  { key: "all", label: "All" },
+  { key: "all",      label: "All" },
+  { key: "pending",  label: "Pending" },
   { key: "approved", label: "Approved" },
-  { key: "pending", label: "Pending" },
-  { key: "banned", label: "Banned" },
+  { key: "banned",   label: "Banned" },
 ];
 
 export default function SuperAdminOwnersPage() {
@@ -73,17 +71,17 @@ export default function SuperAdminOwnersPage() {
   };
 
   const approveMutation = useMutation({
-    mutationFn: (id: number) => saApi.put(`/super-admin/owners/${id}/approve`),
+    mutationFn: (id: string) => saApi.put(`/super-admin/owners/${id}/approve`),
     ...mutationOpts,
   });
 
   const banMutation = useMutation({
-    mutationFn: (id: number) => saApi.put(`/super-admin/owners/${id}/ban`),
+    mutationFn: (id: string) => saApi.put(`/super-admin/owners/${id}/ban`),
     ...mutationOpts,
   });
 
   const unbanMutation = useMutation({
-    mutationFn: (id: number) => saApi.put(`/super-admin/owners/${id}/unban`),
+    mutationFn: (id: string) => saApi.put(`/super-admin/owners/${id}/unban`),
     ...mutationOpts,
   });
 
@@ -91,20 +89,18 @@ export default function SuperAdminOwnersPage() {
 
   const filtered = owners.filter((o) => {
     if (activeTab === "all") return true;
-    return o.status?.toLowerCase() === activeTab;
+    return o.accountStatus?.toLowerCase() === activeTab;
   });
 
   const counts = {
-    all: owners.length,
-    approved: owners.filter((o) => o.status?.toLowerCase() === "approved").length,
-    pending: owners.filter((o) => o.status?.toLowerCase() === "pending").length,
-    banned: owners.filter((o) => o.status?.toLowerCase() === "banned").length,
+    all:      owners.length,
+    pending:  owners.filter((o) => o.accountStatus?.toLowerCase() === "pending").length,
+    approved: owners.filter((o) => o.accountStatus?.toLowerCase() === "approved").length,
+    banned:   owners.filter((o) => o.accountStatus?.toLowerCase() === "banned").length,
   };
 
   const isActionPending =
-    approveMutation.isPending ||
-    banMutation.isPending ||
-    unbanMutation.isPending;
+    approveMutation.isPending || banMutation.isPending || unbanMutation.isPending;
 
   return (
     <div className="space-y-6">
@@ -166,16 +162,7 @@ export default function SuperAdminOwnersPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  {[
-                    "Name",
-                    "Email",
-                    "Status",
-                    "Branches",
-                    "Users",
-                    "Vendors",
-                    "Joined",
-                    "Actions",
-                  ].map((h) => (
+                  {["Name", "Email", "Status", "Joined", "Actions"].map((h) => (
                     <th
                       key={h}
                       className={`px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider ${
@@ -189,33 +176,17 @@ export default function SuperAdminOwnersPage() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filtered.map((owner) => {
-                  const status = owner.status?.toLowerCase();
+                  const status = owner.accountStatus?.toLowerCase();
                   return (
-                    <tr
-                      key={owner.id}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="px-4 py-3 font-medium text-[#1B2A4A]">
-                        {owner.name}
-                      </td>
+                    <tr key={owner.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 font-medium text-[#1B2A4A]">{owner.name}</td>
                       <td className="px-4 py-3 text-gray-500">{owner.email}</td>
                       <td className="px-4 py-3">
-                        <StatusBadge status={owner.status} />
+                        <StatusBadge status={owner.accountStatus} />
                       </td>
-                      <td className="px-4 py-3 text-gray-600">
-                        {owner.branchCount ?? 0}
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">
-                        {owner.userCount ?? 0}
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">
-                        {owner.vendorCount ?? 0}
-                      </td>
-                      <td className="px-4 py-3 text-gray-500">
-                        {formatDate(owner.created_at)}
-                      </td>
+                      <td className="px-4 py-3 text-gray-500">{formatDate(owner.created_at)}</td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-2 flex-wrap">
+                        <div className="flex items-center justify-end gap-2">
                           {status === "pending" && (
                             <>
                               <button
@@ -235,28 +206,19 @@ export default function SuperAdminOwnersPage() {
                             </>
                           )}
                           {status === "approved" && (
-                            <>
-                              <button
-                                onClick={() => banMutation.mutate(owner.id)}
-                                disabled={isActionPending}
-                                className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
-                              >
-                                Ban
-                              </button>
-                              <Link
-                                href={`/super-admin/owners/${owner.id}/data`}
-                                className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
-                              >
-                                <ExternalLink className="w-3 h-3" />
-                                View Data
-                              </Link>
-                            </>
+                            <button
+                              onClick={() => banMutation.mutate(owner.id)}
+                              disabled={isActionPending}
+                              className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+                            >
+                              Ban
+                            </button>
                           )}
                           {status === "banned" && (
                             <button
                               onClick={() => unbanMutation.mutate(owner.id)}
                               disabled={isActionPending}
-                              className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors disabled:opacity-50"
+                              className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
                             >
                               Unban
                             </button>

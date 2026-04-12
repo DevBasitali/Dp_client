@@ -1,6 +1,23 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 
+export interface LedgerRow {
+  date: string;
+  type: 'INVENTORY' | 'PAYMENT';
+  description: string;
+  amount: number;
+  source: string | null;
+  branch: { id: string; name: string };
+  recordedBy: { id: string; name: string };
+  runningBalance: number;
+}
+
+export interface VendorLedger {
+  vendor: { id: string; name: string; whatsappNumber: string; category: string };
+  outstandingBalance: number;
+  ledger: LedgerRow[];
+}
+
 export interface Vendor {
   id: string;
   name: string;
@@ -67,7 +84,7 @@ export const useUpdateVendor = () => {
 
 export const useDeleteVendor = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (id: string) => {
       const { data } = await api.delete(`/vendors/${id}`);
@@ -75,6 +92,36 @@ export const useDeleteVendor = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vendors'] });
+    },
+  });
+};
+
+export const useVendorLedger = (vendorId: string) => {
+  return useQuery({
+    queryKey: ['vendor-ledger', vendorId],
+    queryFn: async () => {
+      const { data } = await api.get(`/vendor-ledger/${vendorId}`);
+      return data.data as VendorLedger;
+    },
+    enabled: !!vendorId,
+  });
+};
+
+export const useRecordInventory = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      vendorId: string;
+      branchId: string;
+      amount: number;
+      description: string;
+      date: string;
+    }) => {
+      const { data } = await api.post('/vendor-ledger/inventory', payload);
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['vendor-ledger', variables.vendorId] });
     },
   });
 };

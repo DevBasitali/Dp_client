@@ -20,14 +20,14 @@ export default function Sidebar({ isMobileOpen, closeMobile }: SidebarProps) {
 
   const navLinks = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Vendors", href: "/vendors", icon: Users },
-    { name: "Items", href: "/items", icon: Package },
     { name: "Branches", href: "/branches", icon: Store },
-    { name: "Users", href: "/users", icon: UserCog },
+    { name: "Vendors", href: "/vendors", icon: Users },
+    // { name: "Items", href: "/items", icon: Package },
     { name: "Vendor Orders", href: "/vendor-orders", icon: ClipboardList },
     { name: "Daily Closing", href: "/daily-closings", icon: Wallet },
     { name: "Monthly Closing", href: "/monthly-closings", icon: CalendarCheck },
     { name: "Reports", href: "/reports", icon: BarChart3 },
+    { name: "Users", href: "/users", icon: UserCog },
     { name: "Settings", href: "/settings", icon: SettingsIcon },
   ];
 
@@ -52,9 +52,8 @@ export default function Sidebar({ isMobileOpen, closeMobile }: SidebarProps) {
               key={link.name}
               href={link.href}
               onClick={closeMobile}
-              className={`flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-lg transition-colors ${
-                isActive ? "bg-slate-800 text-[#F0A500]" : "hover:bg-slate-800 text-slate-300"
-              }`}
+              className={`flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-lg transition-colors ${isActive ? "bg-slate-800 text-[#F0A500]" : "hover:bg-slate-800 text-slate-300"
+                }`}
             >
               <Icon className="w-5 h-5" />
               <span className="font-medium text-base md:text-sm">{link.name}</span>
@@ -90,11 +89,11 @@ export default function Sidebar({ isMobileOpen, closeMobile }: SidebarProps) {
       {isMobileOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden">
           {/* Backdrop */}
-          <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" 
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
             onClick={closeMobile}
           ></div>
-          
+
           {/* Slide-out Menu */}
           <aside className="relative w-72 max-w-[80%] bg-[#1B2A4A] text-white flex flex-col h-full shadow-2xl animate-in slide-in-from-left duration-300">
             {SidebarContent}

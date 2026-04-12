@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useCreateDailyClosing } from "@/hooks/useDailyClosings";
 import { useBranches } from "@/hooks/useBranches";
+import { useVendors } from "@/hooks/useVendors";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ const expenseSchema = z.object({
   description: z.string().min(1, "Description is required"),
   amount: z.number().positive("Must be greater than 0"),
   source: z.enum(["SALE", "CAL"]),
+  vendorId: z.string().uuid().optional().nullable(),
 });
 
 const closingSchema = z.object({
@@ -45,6 +47,7 @@ export default function DailyClosingFormPage() {
   const isManager = user?.role === "branch_manager";
 
   const { data: branches } = useBranches();
+  const { data: vendors } = useVendors();
   const createMutation = useCreateDailyClosing();
 
   const {
@@ -61,7 +64,7 @@ export default function DailyClosingFormPage() {
       cashSales: 0,
       easypaisaSales: 0,
       notes: "",
-      expenses: [] as { description: string; amount: number; source: "SALE" | "CAL" }[],
+      expenses: [] as { description: string; amount: number; source: "SALE" | "CAL"; vendorId?: string | null }[],
     },
   });
 
@@ -99,7 +102,10 @@ export default function DailyClosingFormPage() {
       cashSales: data.cashSales,
       easypaisaSales: data.easypaisaSales,
       notes: data.notes || undefined,
-      expenses: data.expenses,
+      expenses: data.expenses.map((e) => ({
+        ...e,
+        vendorId: e.vendorId || null,
+      })),
     };
 
     createMutation.mutate(payload, {
@@ -222,74 +228,104 @@ export default function DailyClosingFormPage() {
               {fields.map((field, index) => (
                 <div
                   key={field.id}
-                  className="grid grid-cols-[1fr_140px_130px_36px] gap-2 items-start"
+                  className="rounded-lg border border-slate-100 bg-slate-50/50 p-3 space-y-2"
                 >
-                  {/* Description */}
-                  <div>
-                    <Input
-                      placeholder="e.g. Workers lunch"
-                      {...register(`expenses.${index}.description`)}
-                      className={errors.expenses?.[index]?.description ? "border-red-500" : ""}
-                    />
-                    {errors.expenses?.[index]?.description && (
-                      <p className="text-xs text-red-500 mt-1">
-                        {errors.expenses[index]?.description?.message}
-                      </p>
-                    )}
+                  {/* Main row: Description | Amount | Source | Remove */}
+                  <div className="grid grid-cols-[1fr_130px_120px_36px] gap-2 items-start">
+                    {/* Description */}
+                    <div>
+                      <Input
+                        placeholder="e.g. Workers lunch"
+                        {...register(`expenses.${index}.description`)}
+                        className={`bg-white ${errors.expenses?.[index]?.description ? "border-red-500" : ""}`}
+                      />
+                      {errors.expenses?.[index]?.description && (
+                        <p className="text-xs text-red-500 mt-1">
+                          {errors.expenses[index]?.description?.message}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Amount */}
+                    <div>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="Amount"
+                        {...register(`expenses.${index}.amount`, { valueAsNumber: true })}
+                        className={`font-mono bg-white ${errors.expenses?.[index]?.amount ? "border-red-500" : ""}`}
+                      />
+                      {errors.expenses?.[index]?.amount && (
+                        <p className="text-xs text-red-500 mt-1">
+                          {errors.expenses[index]?.amount?.message}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Source */}
+                    <div>
+                      <Controller
+                        control={control}
+                        name={`expenses.${index}.source`}
+                        render={({ field: f }) => (
+                          <Select value={f.value} onValueChange={(val: string | null) => val && f.onChange(val)}>
+                            <SelectTrigger
+                              className={`bg-white ${errors.expenses?.[index]?.source ? "border-red-500" : ""}`}
+                            >
+                              <SelectValue placeholder="Source" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="SALE">FROM SALE</SelectItem>
+                              <SelectItem value="CAL">FROM CAL</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                      {errors.expenses?.[index]?.source && (
+                        <p className="text-xs text-red-500 mt-1">
+                          {errors.expenses[index]?.source?.message}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Remove */}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-9 text-red-400 hover:text-red-600 hover:bg-red-50 mt-0"
+                      onClick={() => remove(index)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
                   </div>
 
-                  {/* Amount */}
-                  <div>
-                    <Input
-                      type="number"
-                      min="0"
-                      placeholder="Amount"
-                      {...register(`expenses.${index}.amount`, { valueAsNumber: true })}
-                      className={`font-mono ${errors.expenses?.[index]?.amount ? "border-red-500" : ""}`}
-                    />
-                    {errors.expenses?.[index]?.amount && (
-                      <p className="text-xs text-red-500 mt-1">
-                        {errors.expenses[index]?.amount?.message}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Source */}
-                  <div>
+                  {/* Vendor row (optional) */}
+                  <div className="space-y-1">
                     <Controller
                       control={control}
-                      name={`expenses.${index}.source`}
+                      name={`expenses.${index}.vendorId`}
                       render={({ field: f }) => (
-                        <Select value={f.value} onValueChange={(val: string | null) => val && f.onChange(val)}>
-                          <SelectTrigger
-                            className={errors.expenses?.[index]?.source ? "border-red-500" : ""}
-                          >
-                            <SelectValue placeholder="Source" />
+                        <Select
+                          value={f.value ?? ""}
+                          onValueChange={(val) => f.onChange(val === "" ? null : val)}
+                        >
+                          <SelectTrigger className="h-8 text-sm bg-white">
+                            <SelectValue placeholder="Select vendor (optional)" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="SALE">FROM SALE</SelectItem>
-                            <SelectItem value="CAL">FROM CAL</SelectItem>
+                            <SelectItem value="">No vendor</SelectItem>
+                            {vendors?.map((v) => (
+                              <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       )}
                     />
-                    {errors.expenses?.[index]?.source && (
-                      <p className="text-xs text-red-500 mt-1">
-                        {errors.expenses[index]?.source?.message}
-                      </p>
-                    )}
+                    <p className="text-xs text-slate-400">
+                      Select a vendor to auto-record this as a payment in their ledger
+                    </p>
                   </div>
-
-                  {/* Remove */}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-10 w-9 text-red-400 hover:text-red-600 hover:bg-red-50 mt-0"
-                    onClick={() => remove(index)}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
                 </div>
               ))}
             </div>
@@ -299,7 +335,7 @@ export default function DailyClosingFormPage() {
               variant="outline"
               size="sm"
               className="border-dashed border-[#1B2A4A] text-[#1B2A4A] hover:bg-slate-50"
-              onClick={() => append({ description: "", amount: 0, source: "SALE" })}
+              onClick={() => append({ description: "", amount: 0, source: "SALE", vendorId: null })}
             >
               <Plus className="w-4 h-4 mr-2" />
               Add Expense

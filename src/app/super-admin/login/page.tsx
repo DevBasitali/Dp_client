@@ -83,7 +83,14 @@ export default function SuperAdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center px-4 bg-slate-50">
+    <div className="min-h-screen flex flex-col justify-center px-4 bg-slate-50 relative">
+      <button
+        onClick={() => router.push("/login")}
+        className="absolute top-5 left-5 flex items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors"
+        style={{ fontSize: "13px", opacity: 0.6 }}
+      >
+        ← Back to Login
+      </button>
       <div className="mb-8 text-center">
         <ShieldCheck className="h-10 w-10 text-[#1B2A4A] mx-auto mb-3" />
         <h1 className="text-2xl font-bold text-[#1B2A4A]">Dollar Point</h1>

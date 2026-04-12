@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Users,
   Clock,
+  UserPlus,
   ShieldPlus,
   LogOut,
   Menu,
@@ -59,19 +60,11 @@ export default function SuperAdminLayout({
   };
 
   const navLinks = [
-    { name: "Dashboard", href: "/super-admin/dashboard", icon: LayoutDashboard },
-    { name: "Owners", href: "/super-admin/owners", icon: Users },
-    {
-      name: "Pending Approvals",
-      href: "/super-admin/owners",
-      icon: Clock,
-      badge: pendingCount,
-    },
-    {
-      name: "Create Super Admin",
-      href: "/super-admin/create-super-admin",
-      icon: ShieldPlus,
-    },
+    { name: "Dashboard",         href: "/super-admin/dashboard",         icon: LayoutDashboard },
+    { name: "Owners",            href: "/super-admin/owners",            icon: Users },
+    { name: "Pending Approvals", href: "/super-admin/owners",            icon: Clock, badge: pendingCount },
+    { name: "Create Owner",      href: "/super-admin/create-owner",      icon: UserPlus },
+    { name: "Create Super Admin",href: "/super-admin/create-super-admin",icon: ShieldPlus },
   ];
 
   const SidebarContent = (
