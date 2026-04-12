@@ -1,0 +1,276 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { saApi } from "@/lib/saApi";
+import { Loader2, ExternalLink } from "lucide-react";
+
+interface Owner {
+  id: number;
+  name: string;
+  email: string;
+  status: string;
+  branchCount: number;
+  userCount: number;
+  vendorCount: number;
+  created_at: string;
+}
+
+type FilterTab = "all" | "approved" | "pending" | "banned";
+
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    approved: "bg-green-100 text-green-700",
+    pending: "bg-amber-100 text-amber-700",
+    banned: "bg-red-100 text-red-700",
+  };
+  return (
+    <span
+      className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide ${
+        map[status?.toLowerCase()] ?? "bg-gray-100 text-gray-600"
+      }`}
+    >
+      {status}
+    </span>
+  );
+}
+
+function formatDate(iso: string) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+const TABS: { key: FilterTab; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "approved", label: "Approved" },
+  { key: "pending", label: "Pending" },
+  { key: "banned", label: "Banned" },
+];
+
+export default function SuperAdminOwnersPage() {
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<FilterTab>("all");
+
+  const { data, isLoading, isError } = useQuery<Owner[]>({
+    queryKey: ["sa-owners"],
+    queryFn: async () => {
+      const res = await saApi.get("/super-admin/owners");
+      return res.data?.data?.owners ?? res.data?.data ?? [];
+    },
+  });
+
+  const mutationOpts = {
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sa-owners"] });
+      queryClient.invalidateQueries({ queryKey: ["sa-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["sa-pending-count"] });
+    },
+  };
+
+  const approveMutation = useMutation({
+    mutationFn: (id: number) => saApi.put(`/super-admin/owners/${id}/approve`),
+    ...mutationOpts,
+  });
+
+  const banMutation = useMutation({
+    mutationFn: (id: number) => saApi.put(`/super-admin/owners/${id}/ban`),
+    ...mutationOpts,
+  });
+
+  const unbanMutation = useMutation({
+    mutationFn: (id: number) => saApi.put(`/super-admin/owners/${id}/unban`),
+    ...mutationOpts,
+  });
+
+  const owners = data ?? [];
+
+  const filtered = owners.filter((o) => {
+    if (activeTab === "all") return true;
+    return o.status?.toLowerCase() === activeTab;
+  });
+
+  const counts = {
+    all: owners.length,
+    approved: owners.filter((o) => o.status?.toLowerCase() === "approved").length,
+    pending: owners.filter((o) => o.status?.toLowerCase() === "pending").length,
+    banned: owners.filter((o) => o.status?.toLowerCase() === "banned").length,
+  };
+
+  const isActionPending =
+    approveMutation.isPending ||
+    banMutation.isPending ||
+    unbanMutation.isPending;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-[#1B2A4A]">Owners</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Manage all owner accounts</p>
+        </div>
+        <Link
+          href="/super-admin/create-owner"
+          className="px-4 py-2 bg-[#1B2A4A] text-white text-sm font-semibold rounded-lg hover:bg-slate-800 transition-colors"
+        >
+          + Create Owner
+        </Link>
+      </div>
+
+      {/* Filter tabs */}
+      <div className="flex gap-1 border-b border-gray-200">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
+              activeTab === tab.key
+                ? "border-[#1B2A4A] text-[#1B2A4A]"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            {tab.label}
+            <span
+              className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                activeTab === tab.key
+                  ? "bg-[#1B2A4A] text-white"
+                  : "bg-gray-100 text-gray-500"
+              }`}
+            >
+              {counts[tab.key]}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Table */}
+      {isLoading ? (
+        <div className="flex items-center justify-center h-48">
+          <Loader2 className="w-5 h-5 animate-spin text-[#1B2A4A]" />
+        </div>
+      ) : isError ? (
+        <div className="text-center py-16 text-red-500 text-sm font-medium">
+          Failed to load owners.
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-10 text-center text-gray-400 text-sm">
+          No owners found.
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50">
+                  {[
+                    "Name",
+                    "Email",
+                    "Status",
+                    "Branches",
+                    "Users",
+                    "Vendors",
+                    "Joined",
+                    "Actions",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className={`px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider ${
+                        h === "Actions" ? "text-right" : "text-left"
+                      }`}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filtered.map((owner) => {
+                  const status = owner.status?.toLowerCase();
+                  return (
+                    <tr
+                      key={owner.id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-4 py-3 font-medium text-[#1B2A4A]">
+                        {owner.name}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500">{owner.email}</td>
+                      <td className="px-4 py-3">
+                        <StatusBadge status={owner.status} />
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">
+                        {owner.branchCount ?? 0}
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">
+                        {owner.userCount ?? 0}
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">
+                        {owner.vendorCount ?? 0}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500">
+                        {formatDate(owner.created_at)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-2 flex-wrap">
+                          {status === "pending" && (
+                            <>
+                              <button
+                                onClick={() => approveMutation.mutate(owner.id)}
+                                disabled={isActionPending}
+                                className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => banMutation.mutate(owner.id)}
+                                disabled={isActionPending}
+                                className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+                              >
+                                Ban
+                              </button>
+                            </>
+                          )}
+                          {status === "approved" && (
+                            <>
+                              <button
+                                onClick={() => banMutation.mutate(owner.id)}
+                                disabled={isActionPending}
+                                className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+                              >
+                                Ban
+                              </button>
+                              <Link
+                                href={`/super-admin/owners/${owner.id}/data`}
+                                className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                                View Data
+                              </Link>
+                            </>
+                          )}
+                          {status === "banned" && (
+                            <button
+                              onClick={() => unbanMutation.mutate(owner.id)}
+                              disabled={isActionPending}
+                              className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors disabled:opacity-50"
+                            >
+                              Unban
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

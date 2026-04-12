@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
 
 // Schema matching the expected backend logic
 const loginSchema = z.object({
@@ -26,6 +27,12 @@ export default function LoginPage() {
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
   const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    if (window.location.search) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -60,10 +67,8 @@ export default function LoginPage() {
         }
       }
     },
-    onError: (error: any) => {
-      setErrorMessage(
-        error.response?.data?.message || "An unexpected error occurred. Please try again."
-      );
+    onError: () => {
+      setErrorMessage("Invalid email or password.");
     },
   });
 
@@ -147,10 +152,26 @@ export default function LoginPage() {
         </CardContent>
       </Card>
 
+      <p className="text-center text-sm text-gray-500 mt-6">
+        New owner?{" "}
+        <Link href="/signup" className="text-[#F0A500] font-semibold hover:underline">
+          Sign up here
+        </Link>
+      </p>
+
       {/* Footer support text */}
-      <p className="text-center text-xs text-gray-400 mt-8">
+      <p className="text-center text-xs text-gray-400 mt-4">
         Designed for Dollar Point internal use. Need help? Contact the owner.
       </p>
+
+      <div className="text-center mt-3">
+        <a
+          href="/super-admin/login"
+          className="text-[10px] text-gray-300 opacity-30 hover:opacity-40 transition-opacity duration-300 select-none"
+        >
+          SuperAdmin
+        </a>
+      </div>
     </div>
   );
 }
