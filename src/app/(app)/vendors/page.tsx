@@ -293,7 +293,7 @@ export default function VendorsPage() {
                 <Label>Branch <span className="text-red-500">*</span></Label>
                 <Select
                   value={recordForm.branchId}
-                  onValueChange={(val) => setRecordForm((f) => ({ ...f, branchId: val }))}
+                  onValueChange={(val: string | null) => setRecordForm((f) => ({ ...f, branchId: val ?? '' }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select branch" />

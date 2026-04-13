@@ -69,7 +69,7 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
     fetchBranches();
   }, []);
 
-  const [selectedBranch, setSelectedBranch] = useState<string>("all");
+  const [selectedBranch, setSelectedBranch] = useState<string>('all');
 
   const [showInventoryModal, setShowInventoryModal] = useState(false);
   const [invAmount, setInvAmount] = useState("");
@@ -241,7 +241,7 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
             <CardTitle className="text-base">Transaction Ledger</CardTitle>
             {isOwner && (
               <div className="flex flex-col items-end gap-1">
-                <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+                <Select value={selectedBranch} onValueChange={(val: string | null) => setSelectedBranch(val ?? 'all')}>
                   <SelectTrigger className="w-[180px] h-8 text-sm">
                     <SelectValue placeholder="All Branches" />
                   </SelectTrigger>
@@ -391,7 +391,7 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
                   {managerBranchName}
                 </div>
               ) : (
-                <Select onValueChange={(val) => setInvBranchId(val)}>
+                <Select onValueChange={(val: string | null) => setInvBranchId(val)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select branch" />
                   </SelectTrigger>
