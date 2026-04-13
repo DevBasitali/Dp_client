@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useVendors } from "@/hooks/useVendors";
 import { useBranches } from "@/hooks/useBranches";
@@ -31,6 +31,8 @@ const orderSchema = z.object({
 
 export default function PlaceVendorOrderPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const preselectedVendorId = searchParams.get("vendorId") || "";
   const { user } = useAuthStore();
   const isManager = user?.role === "branch_manager";
   
@@ -45,6 +47,7 @@ export default function PlaceVendorOrderPage() {
     defaultValues: {
       items: [{ item_name: "", quantity: 1 }],
       branch_id: isManager ? (user.branchId || "") : "",
+      vendor_id: preselectedVendorId,
     }
   });
 
@@ -94,7 +97,7 @@ export default function PlaceVendorOrderPage() {
       onSuccess: (res) => {
         console.log("[VendorOrder] Success =>", res);
         toast.success("Inventory request sent!");
-        router.push(isManager ? "/branch-dashboard" : "/vendor-orders");
+        router.push("/vendor-orders");
       },
       onError: (err: any) => {
         console.error("[VendorOrder] Error =>", err.response?.data || err);
@@ -143,7 +146,7 @@ export default function PlaceVendorOrderPage() {
 
             <div className="space-y-2">
               <Label htmlFor="vendor">Select Vendor <span className="text-red-500">*</span></Label>
-              <Select onValueChange={(val: string | null) => val && setValue("vendor_id", val)}>
+              <Select defaultValue={preselectedVendorId || undefined} onValueChange={(val: string | null) => val && setValue("vendor_id", val)}>
                 <SelectTrigger id="vendor" className={errors.vendor_id ? "border-red-500" : ""}>
                   <SelectValue placeholder="Which vendor?" />
                 </SelectTrigger>

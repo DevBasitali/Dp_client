@@ -1,8 +1,8 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import { useVendor, useVendorLedger, useRecordInventory } from "@/hooks/useVendors";
-import { useBranches } from "@/hooks/useBranches";
+import { useAuthStore } from "@/store/authStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,23 +29,54 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
+interface Branch {
+  id: string;
+  name: string;
+}
+
 const formatMoney = (amount: number) =>
   `Rs. ${Number(isNaN(amount) ? 0 : amount).toLocaleString("en-PK")}`;
 
 export default function VendorLedgerPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { id } = use(params);
+  const { user, token } = useAuthStore();
+  const isManager = user?.role === "branch_manager";
 
   const { data: vendor, isLoading, isError } = useVendor(id);
   const { data: ledgerData, isLoading: ledgerLoading } = useVendorLedger(id);
-  const { data: branches } = useBranches();
   const recordInventory = useRecordInventory();
+
+  // Fetch branches via raw fetch to avoid Select portal issues
+  const [branches, setBranches] = useState<Branch[]>([]);
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data) => setBranches(data.data || []));
+  }, [token]);
 
   const [showInventoryModal, setShowInventoryModal] = useState(false);
   const [invAmount, setInvAmount] = useState("");
   const [invDescription, setInvDescription] = useState("");
-  const [invBranchId, setInvBranchId] = useState<string | null>(null);
+  // Branch manager: auto-fill from token. Owner: user selects.
+  const [invBranchId, setInvBranchId] = useState<string | null>(
+    isManager ? (user?.branchId ?? null) : null
+  );
   const [invDate, setInvDate] = useState(format(new Date(), "yyyy-MM-dd"));
+
+  // Derive branch name for read-only display (branch manager)
+  const managerBranchName =
+    branches.find((b) => b.id === user?.branchId)?.name ?? "Your Branch";
+
+  const resetModal = () => {
+    setInvAmount("");
+    setInvDescription("");
+    setInvBranchId(isManager ? (user?.branchId ?? null) : null);
+    setInvDate(format(new Date(), "yyyy-MM-dd"));
+  };
 
   const totalBilled =
     ledgerData?.ledger
@@ -77,7 +108,7 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
     recordInventory.mutate(
       {
         vendorId: id,
-        branchId: invBranchId as string,
+        branchId: invBranchId,
         amount,
         description: invDescription.trim(),
         date: invDate,
@@ -86,13 +117,10 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
         onSuccess: () => {
           toast.success("Inventory recorded successfully.");
           setShowInventoryModal(false);
-          setInvAmount("");
-          setInvDescription("");
-          setInvBranchId(null);
-          setInvDate(format(new Date(), "yyyy-MM-dd"));
+          resetModal();
         },
-        onError: (err: any) => {
-          const msg = err.response?.data?.message;
+        onError: (err: unknown) => {
+          const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
           toast.error(msg || "Failed to record inventory.");
         },
       }
@@ -271,7 +299,13 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
       </Card>
 
       {/* Record Inventory Modal */}
-      <Dialog open={showInventoryModal} onOpenChange={setShowInventoryModal}>
+      <Dialog
+        open={showInventoryModal}
+        onOpenChange={(open) => {
+          setShowInventoryModal(open);
+          if (!open) resetModal();
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Record Inventory Delivery</DialogTitle>
@@ -303,16 +337,24 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
 
             <div className="space-y-2">
               <Label>Branch <span className="text-red-500">*</span></Label>
-              <Select value={invBranchId ?? ""} onValueChange={(value) => setInvBranchId(value ?? null)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select branch" />
-                </SelectTrigger>
-                <SelectContent>
-                  {branches?.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {isManager ? (
+                <div className="flex items-center h-10 px-3 rounded-md border border-input bg-muted text-sm text-muted-foreground">
+                  {managerBranchName}
+                </div>
+              ) : (
+                <Select onValueChange={(val) => setInvBranchId(val)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select branch" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {branches.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        {b.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="space-y-2">

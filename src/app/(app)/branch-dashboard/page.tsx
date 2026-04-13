@@ -23,7 +23,7 @@ export default function BranchDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Button
             className="h-14 bg-[#1B2A4A] hover:bg-slate-800 text-white flex justify-start px-4"
-            onClick={() => router.push('/vendor-orders/new')}
+            onClick={() => router.push('/vendor-orders')}
           >
             <Package className="w-5 h-5 mr-3 text-[#F0A500]" />
             Send Inventory Request

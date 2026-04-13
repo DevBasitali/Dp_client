@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Edit, Trash2, Plus, Loader2, Users, Search, Eye } from "lucide-react";
+import { Edit, Trash2, Plus, Loader2, Users, Search, Eye, ClipboardList } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 
 export default function VendorsPage() {
@@ -127,6 +127,17 @@ export default function VendorsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                           <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => router.push(`/vendor-orders/new?vendorId=${vendor.id}`)}
+                            className="h-8 shadow-sm text-[#F0A500] border-[#F0A500]/30 hover:bg-amber-50"
+                            title="Record Inventory Request"
+                          >
+                            <ClipboardList className="w-4 h-4 mr-1" />
+                            <span className="text-xs font-medium">Record Inventory</span>
+                          </Button>
+
                            <Button 
                             variant="outline" 
                             size="sm"

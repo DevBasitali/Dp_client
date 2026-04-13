@@ -61,7 +61,7 @@ export default function VendorOrdersPage() {
         <Link href="/vendor-orders/new" className="w-full sm:w-auto">
           <Button className="bg-[#1B2A4A] hover:bg-slate-800 text-white w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-2" />
-            Place Order
+            New Request
           </Button>
         </Link>
       </div>
