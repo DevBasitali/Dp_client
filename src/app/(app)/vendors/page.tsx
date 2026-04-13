@@ -2,27 +2,93 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useVendors, useDeleteVendor, Vendor } from "@/hooks/useVendors";
+import { useVendors, useDeleteVendor, useRecordInventory, Vendor } from "@/hooks/useVendors";
+import { useBranches } from "@/hooks/useBranches";
 import VendorForm from "@/components/vendors/VendorForm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Edit, Trash2, Plus, Loader2, Users, Search, Eye, ClipboardList } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
+import { toast } from "sonner";
 
 export default function VendorsPage() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { data: vendors, isLoading, isError } = useVendors();
+  const { data: branches } = useBranches();
   const deleteMutation = useDeleteVendor();
-  
+  const recordInventoryMutation = useRecordInventory();
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
+  const [recordModalOpen, setRecordModalOpen] = useState(false);
+  const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
+  const [selectedVendorName, setSelectedVendorName] = useState("");
+  const [recordForm, setRecordForm] = useState({
+    amount: "",
+    description: "",
+    branchId: user?.branchId ?? "",
+    date: new Date().toISOString().slice(0, 10),
+  });
+  const [recordError, setRecordError] = useState("");
+
   const isOwner = user?.role === "owner";
+
+  const handleOpenRecordModal = (vendor: Vendor) => {
+    setSelectedVendorId(vendor.id);
+    setSelectedVendorName(vendor.name);
+    setRecordForm({
+      amount: "",
+      description: "",
+      branchId: user?.branchId ?? "",
+      date: new Date().toISOString().slice(0, 10),
+    });
+    setRecordError("");
+    setRecordModalOpen(true);
+  };
+
+  const handleRecordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setRecordError("");
+    if (!recordForm.amount || Number(recordForm.amount) <= 0) {
+      setRecordError("Bill amount must be greater than 0.");
+      return;
+    }
+    if (!recordForm.description.trim()) {
+      setRecordError("Description is required.");
+      return;
+    }
+    if (!recordForm.branchId) {
+      setRecordError("Please select a branch.");
+      return;
+    }
+    recordInventoryMutation.mutate(
+      {
+        vendorId: selectedVendorId!,
+        branchId: recordForm.branchId,
+        amount: Number(recordForm.amount),
+        description: recordForm.description.trim(),
+        date: recordForm.date,
+      },
+      {
+        onSuccess: () => {
+          setRecordModalOpen(false);
+          toast.success("Inventory recorded successfully.");
+        },
+        onError: (err: unknown) => {
+          setRecordError(err instanceof Error ? err.message : "Something went wrong.");
+        },
+      }
+    );
+  };
 
   const handleCreateNew = () => {
     setSelectedVendor(null);
@@ -127,12 +193,12 @@ export default function VendorsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                           <Button 
-                            variant="outline" 
+                           <Button
+                            variant="outline"
                             size="sm"
-                            onClick={() => router.push(`/vendor-orders/new?vendorId=${vendor.id}`)}
+                            onClick={() => handleOpenRecordModal(vendor)}
                             className="h-8 shadow-sm text-[#F0A500] border-[#F0A500]/30 hover:bg-amber-50"
-                            title="Record Inventory Request"
+                            title="Record Inventory"
                           >
                             <ClipboardList className="w-4 h-4 mr-1" />
                             <span className="text-xs font-medium">Record Inventory</span>
@@ -183,11 +249,96 @@ export default function VendorsPage() {
         </CardContent>
       </Card>
 
-      <VendorForm 
-        isOpen={isFormOpen} 
-        onClose={() => setIsFormOpen(false)} 
+      <VendorForm
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
         vendorToEdit={selectedVendor}
       />
+
+      <Dialog open={recordModalOpen} onOpenChange={setRecordModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Record Inventory</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleRecordSubmit} className="space-y-4">
+            <div className="space-y-1">
+              <Label>Vendor</Label>
+              <Input value={selectedVendorName} readOnly className="bg-gray-50" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="amount">Bill Amount (PKR) <span className="text-red-500">*</span></Label>
+              <Input
+                id="amount"
+                type="number"
+                min="1"
+                step="0.01"
+                placeholder="e.g. 5000"
+                value={recordForm.amount}
+                onChange={(e) => setRecordForm((f) => ({ ...f, amount: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="description">Description <span className="text-red-500">*</span></Label>
+              <Input
+                id="description"
+                placeholder="e.g. Delivery of melamine plates"
+                value={recordForm.description}
+                onChange={(e) => setRecordForm((f) => ({ ...f, description: e.target.value }))}
+                required
+              />
+            </div>
+            {isOwner ? (
+              <div className="space-y-1">
+                <Label>Branch <span className="text-red-500">*</span></Label>
+                <Select
+                  value={recordForm.branchId}
+                  onValueChange={(val) => setRecordForm((f) => ({ ...f, branchId: val }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select branch" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {branches?.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <Label>Branch</Label>
+                <Input
+                  value={branches?.find((b) => b.id === recordForm.branchId)?.name ?? "Your Branch"}
+                  readOnly
+                  className="bg-gray-50"
+                />
+              </div>
+            )}
+            <div className="space-y-1">
+              <Label htmlFor="date">Date <span className="text-red-500">*</span></Label>
+              <Input
+                id="date"
+                type="date"
+                value={recordForm.date}
+                onChange={(e) => setRecordForm((f) => ({ ...f, date: e.target.value }))}
+                required
+              />
+            </div>
+            {recordError && (
+              <p className="text-sm text-red-600">{recordError}</p>
+            )}
+            <Button
+              type="submit"
+              disabled={recordInventoryMutation.isPending}
+              className="w-full bg-[#1B2A4A] hover:bg-slate-800 text-white"
+            >
+              {recordInventoryMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Record Inventory
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

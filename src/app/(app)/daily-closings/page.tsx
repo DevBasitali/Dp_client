@@ -1,20 +1,59 @@
 "use client";
 
+import { useState } from "react";
 import { useDailyClosings } from "@/hooks/useDailyClosings";
 import { useAuthStore } from "@/store/authStore";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Wallet, Plus, Loader2, Pencil } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Wallet, Plus, Loader2, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 export default function DailyClosingsPage() {
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
   const isManager = user?.role === "branch_manager";
+  const isOwner = user?.role === "owner";
+
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; date: string } | null>(null);
 
   const filters = isManager ? { branchId: user?.branchId ?? undefined } : {};
   const { data: closings, isLoading, isError } = useDailyClosings(filters);
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/daily-closings/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["daily-closings"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      toast.success("Daily closing deleted.");
+      setDeleteTarget(null);
+    },
+    onError: (err: unknown) => {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      const msg =
+        status === 409
+          ? "This month is already closed."
+          : status === 403
+          ? "You can only delete your own entries."
+          : "Failed to delete closing.";
+      toast.error(msg);
+      setDeleteTarget(null);
+    },
+  });
 
   const formatMoney = (amount: number) =>
     `Rs. ${Number(amount).toLocaleString("en-PK")}`;
@@ -97,17 +136,34 @@ export default function DailyClosingsPage() {
                         {formatMoney(Number(closing.physicalToBox))}
                       </TableCell>
                       <TableCell className="text-right p-2">
-                        {(!isManager || format(new Date(closing.closingDate), "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd")) ? (
-                          <Link href={`/daily-closings/${closing.id}/edit`}>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Pencil className="w-4 h-4 text-gray-500 hover:text-[#1B2A4A]" />
+                        <div className="flex justify-end gap-1">
+                          {(!isManager || format(new Date(closing.closingDate), "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd")) ? (
+                            <Link href={`/daily-closings/${closing.id}/edit`}>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Pencil className="w-4 h-4 text-gray-500 hover:text-[#1B2A4A]" />
+                              </Button>
+                            </Link>
+                          ) : (
+                            <Button variant="ghost" size="icon" disabled className="h-8 w-8">
+                              <Pencil className="w-4 h-4 text-gray-300" />
                             </Button>
-                          </Link>
-                        ) : (
-                          <Button variant="ghost" size="icon" disabled className="h-8 w-8">
-                            <Pencil className="w-4 h-4 text-gray-300" />
-                          </Button>
-                        )}
+                          )}
+                          {(isOwner || (isManager && closing.enteredBy === user?.userId)) && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50"
+                              onClick={() =>
+                                setDeleteTarget({
+                                  id: closing.id,
+                                  date: format(new Date(closing.closingDate), "dd MMM yyyy"),
+                                })
+                              }
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -117,6 +173,35 @@ export default function DailyClosingsPage() {
           )}
         </CardContent>
       </Card>
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Daily Closing</DialogTitle>
+            <DialogDescription>
+              Delete this closing for <strong>{deleteTarget?.date}</strong>?
+              This will reverse the Cal Box balance and remove linked vendor payments.
+              This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteTarget(null)}
+              disabled={deleteMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

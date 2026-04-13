@@ -2,6 +2,7 @@
 
 import { use, useState, useEffect } from "react";
 import { useVendor, useVendorLedger, useRecordInventory } from "@/hooks/useVendors";
+import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,23 +41,35 @@ const formatMoney = (amount: number) =>
 export default function VendorLedgerPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { id } = use(params);
-  const { user, token } = useAuthStore();
+  const { user } = useAuthStore();
   const isManager = user?.role === "branch_manager";
+
+  const isOwner = user?.role === "owner";
 
   const { data: vendor, isLoading, isError } = useVendor(id);
   const { data: ledgerData, isLoading: ledgerLoading } = useVendorLedger(id);
   const recordInventory = useRecordInventory();
 
-  // Fetch branches via raw fetch to avoid Select portal issues
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchesLoading, setBranchesLoading] = useState(true);
   useEffect(() => {
-    if (!token) return;
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((data) => setBranches(data.data || []));
-  }, [token]);
+    const fetchBranches = async () => {
+      try {
+        const { data } = await api.get('/branches');
+        console.log('Branches response:', data);
+        console.log('Branches loaded:', data.data || []);
+        console.log('Branches count:', (data.data || []).length);
+        setBranches(data.data || []);
+      } catch (err) {
+        console.error('Branches fetch error:', err);
+      } finally {
+        setBranchesLoading(false);
+      }
+    };
+    fetchBranches();
+  }, []);
+
+  const [selectedBranch, setSelectedBranch] = useState<string>("all");
 
   const [showInventoryModal, setShowInventoryModal] = useState(false);
   const [invAmount, setInvAmount] = useState("");
@@ -78,17 +91,27 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
     setInvDate(format(new Date(), "yyyy-MM-dd"));
   };
 
-  const totalBilled =
-    ledgerData?.ledger
-      .filter((r) => r.type === "INVENTORY")
-      .reduce((sum, r) => sum + r.amount, 0) ?? 0;
+  const allLedger = ledgerData?.ledger ?? [];
 
-  const totalPaid =
-    ledgerData?.ledger
-      .filter((r) => r.type === "PAYMENT")
-      .reduce((sum, r) => sum + r.amount, 0) ?? 0;
+  const filteredLedger =
+    selectedBranch === "all"
+      ? allLedger
+      : allLedger.filter((row) => row.branch?.id === selectedBranch);
 
-  const balance = ledgerData?.outstandingBalance ?? 0;
+  const filteredBilled = filteredLedger
+    .filter((r) => r.type === "INVENTORY")
+    .reduce((sum, r) => sum + r.amount, 0);
+
+  const filteredPaid = filteredLedger
+    .filter((r) => r.type === "PAYMENT")
+    .reduce((sum, r) => sum + r.amount, 0);
+
+  const filteredBalance = filteredBilled - filteredPaid;
+
+  const selectedBranchName =
+    selectedBranch === "all"
+      ? "All Branches"
+      : (branches.find((b) => b.id === selectedBranch)?.name ?? "Branch");
 
   const handleRecordInventory = () => {
     const amount = parseFloat(invAmount);
@@ -182,7 +205,7 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
             <CardTitle className="text-sm font-medium text-gray-500">Total Billed</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-800">{formatMoney(totalBilled)}</div>
+            <div className="text-2xl font-bold text-gray-800">{formatMoney(filteredBilled)}</div>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm">
@@ -190,22 +213,22 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
             <CardTitle className="text-sm font-medium text-gray-500">Total Paid</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{formatMoney(totalPaid)}</div>
+            <div className="text-2xl font-bold text-green-600">{formatMoney(filteredPaid)}</div>
           </CardContent>
         </Card>
         <Card
           className={`border-0 shadow-sm ${
-            balance > 0 ? "border-l-4 border-l-red-500 bg-red-50/30" : ""
+            filteredBalance > 0 ? "border-l-4 border-l-red-500 bg-red-50/30" : ""
           }`}
         >
           <CardHeader className="pb-2">
-            <CardTitle className={`text-sm font-medium ${balance > 0 ? "text-red-800" : "text-gray-500"}`}>
+            <CardTitle className={`text-sm font-medium ${filteredBalance > 0 ? "text-red-800" : "text-gray-500"}`}>
               Balance Remaining
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${balance > 0 ? "text-red-600" : "text-gray-800"}`}>
-              {formatMoney(balance)}
+            <div className={`text-2xl font-bold ${filteredBalance > 0 ? "text-red-600" : "text-gray-800"}`}>
+              {formatMoney(filteredBalance)}
             </div>
           </CardContent>
         </Card>
@@ -214,14 +237,40 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
       {/* Ledger Table */}
       <Card className="border-0 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-base">Transaction Ledger</CardTitle>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <CardTitle className="text-base">Transaction Ledger</CardTitle>
+            {isOwner && (
+              <div className="flex flex-col items-end gap-1">
+                <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+                  <SelectTrigger className="w-[180px] h-8 text-sm">
+                    <SelectValue placeholder="All Branches" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {branchesLoading ? (
+                      <SelectItem value="loading" disabled>Loading branches...</SelectItem>
+                    ) : (
+                      <>
+                        <SelectItem value="all">All Branches</SelectItem>
+                        {branches.map((b) => (
+                          <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                        ))}
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+                <span className="text-xs text-gray-500">
+                  {selectedBranchName} — {formatMoney(filteredBilled)} total
+                </span>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {ledgerLoading ? (
             <div className="flex justify-center items-center h-32">
               <Loader2 className="w-6 h-6 animate-spin text-[#1B2A4A]" />
             </div>
-          ) : !ledgerData?.ledger.length ? (
+          ) : !allLedger.length ? (
             <div className="flex flex-col items-center justify-center h-40 text-center px-6">
               <PackageOpen className="w-10 h-10 text-gray-300 mb-3" />
               <p className="text-sm text-gray-500">No transactions yet.</p>
@@ -244,7 +293,7 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {ledgerData.ledger.map((row, i) => (
+                  {filteredLedger.map((row, i) => (
                     <TableRow key={i}>
                       <TableCell className="text-xs text-gray-500 whitespace-nowrap">
                         {format(new Date(row.date), "dd MMM yyyy")}
