@@ -93,3 +93,18 @@ PUT             /super-admin/owners/:id/approve
 PUT             /super-admin/owners/:id/ban
 PUT             /super-admin/owners/:id/unban
 POST            /super-admin/super-admins
+
+## Critical TypeScript Rule
+ALWAYS run: npx tsc --noEmit
+before committing any changes.
+
+Never use snake_case field names in frontend
+TypeScript code. Always use camelCase:
+  branchId    NOT branch_id
+  vendorId    NOT vendor_id
+  createdAt   NOT created_at
+  isActive    NOT is_active
+
+The backend Prisma schema uses snake_case in DB
+but the API responses return camelCase.
+Frontend always uses camelCase.
