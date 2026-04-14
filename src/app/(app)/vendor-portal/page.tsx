@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function VendorPortalRedirect() {
-  redirect("/vendor-portal/items");
+  redirect("/vendor-portal/ledger");
 }

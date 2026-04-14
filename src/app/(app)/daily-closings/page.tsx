@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDailyClosings } from "@/hooks/useDailyClosings";
 import { useAuthStore } from "@/store/authStore";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
@@ -20,6 +20,7 @@ import { Wallet, Plus, Loader2, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import PaginationBar from "@/components/ui/pagination-bar";
 
 export default function DailyClosingsPage() {
   const { user } = useAuthStore();
@@ -28,9 +29,13 @@ export default function DailyClosingsPage() {
   const isOwner = user?.role === "owner";
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; date: string } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   const filters = isManager ? { branchId: user?.branchId ?? undefined } : {};
   const { data: closings, isLoading, isError } = useDailyClosings(filters);
+
+  useEffect(() => { setCurrentPage(1); }, []);
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -107,6 +112,11 @@ export default function DailyClosingsPage() {
             </div>
           ) : (
             <>
+              {/* Result count */}
+              <p className="text-sm text-gray-500 px-4 pt-3">
+                Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, closings!.length)}–{Math.min(currentPage * ITEMS_PER_PAGE, closings!.length)} of {closings!.length}
+              </p>
+
               {/* Desktop table */}
               <div className="hidden md:block overflow-x-auto">
                 <Table>
@@ -122,7 +132,7 @@ export default function DailyClosingsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {closings?.map((closing) => (
+                    {closings?.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((closing) => (
                       <TableRow key={closing.id} className="hover:bg-slate-50 transition-colors">
                         <TableCell className="font-medium text-[#1A1A2E]">
                           {format(new Date(closing.closingDate), "dd MMM yyyy")}
@@ -167,7 +177,7 @@ export default function DailyClosingsPage() {
 
               {/* Mobile cards */}
               <div className="block md:hidden divide-y">
-                {closings?.map((closing) => (
+                {closings?.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((closing) => (
                   <div key={closing.id} className="p-4 space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="font-semibold text-[#1A1A2E]">
@@ -218,6 +228,16 @@ export default function DailyClosingsPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+
+              {/* Pagination */}
+              <div className="px-4 pb-4">
+                <PaginationBar
+                  currentPage={currentPage}
+                  totalItems={closings?.length ?? 0}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                  onPageChange={setCurrentPage}
+                />
               </div>
             </>
           )}

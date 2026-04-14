@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUsers, SystemUser } from "@/hooks/useUsers";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,11 +9,17 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pencil, UserCog, Loader2, Plus } from "lucide-react";
 import UserForm from "@/components/users/UserForm";
+import PaginationBar from "@/components/ui/pagination-bar";
 
 export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState("All");
   const { data: users, isLoading, isError } = useUsers(roleFilter);
-  
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
+  useEffect(() => { setCurrentPage(1); }, [roleFilter]);
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState<SystemUser | null>(null);
 
@@ -91,7 +97,7 @@ export default function UsersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users?.map((u) => (
+                    {users?.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((u) => (
                       <TableRow key={u.id} className="hover:bg-slate-50">
                         <TableCell className="font-medium text-[#1A1A2E]">{u.name}</TableCell>
                         <TableCell className="text-gray-600">{u.email}</TableCell>
@@ -139,7 +145,7 @@ export default function UsersPage() {
                     No users yet. Add your first user above.
                   </p>
                 ) : (
-                  users?.map((u) => (
+                  users?.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((u) => (
                     <div key={u.id} className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex items-center gap-3">
@@ -175,6 +181,16 @@ export default function UsersPage() {
                     </div>
                   ))
                 )}
+              </div>
+
+              {/* Pagination */}
+              <div className="px-4 pb-4">
+                <PaginationBar
+                  currentPage={currentPage}
+                  totalItems={users?.length ?? 0}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                  onPageChange={setCurrentPage}
+                />
               </div>
             </>
           )}

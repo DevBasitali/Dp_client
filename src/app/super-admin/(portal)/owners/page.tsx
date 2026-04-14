@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { saApi } from "@/lib/saApi";
 import { Loader2 } from "lucide-react";
+import PaginationBar from "@/components/ui/pagination-bar";
 
 interface Owner {
   id: string;
@@ -53,6 +54,10 @@ const TABS: { key: FilterTab; label: string }[] = [
 export default function SuperAdminOwnersPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
+  useEffect(() => { setCurrentPage(1); }, [activeTab]);
 
   const { data, isLoading, isError } = useQuery<Owner[]>({
     queryKey: ["sa-owners"],
@@ -177,7 +182,7 @@ export default function SuperAdminOwnersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filtered.map((owner) => {
+                  {filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((owner) => {
                     const status = owner.accountStatus?.toLowerCase();
                     return (
                       <tr key={owner.id} className="hover:bg-gray-50 transition-colors">
@@ -237,7 +242,7 @@ export default function SuperAdminOwnersPage() {
 
           {/* Mobile cards */}
           <div className="block md:hidden space-y-3">
-            {filtered.map((owner) => {
+            {filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((owner) => {
               const status = owner.accountStatus?.toLowerCase();
               return (
                 <div key={owner.id} className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
@@ -300,6 +305,12 @@ export default function SuperAdminOwnersPage() {
               );
             })}
           </div>
+          <PaginationBar
+            currentPage={currentPage}
+            totalItems={filtered.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            onPageChange={setCurrentPage}
+          />
         </>
       )}
     </div>

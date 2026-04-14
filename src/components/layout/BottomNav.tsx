@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
-import { Home, Users, Package, BarChart2, LogOut } from "lucide-react";
+import { Home, Users, Package, BarChart2, LogOut, BookOpen } from "lucide-react";
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -21,8 +21,8 @@ export default function BottomNav() {
         { name: "Closing", href: "/daily-closings", icon: BarChart2 },
       ]
     : [
-        { name: "My Items", href: "/vendor-portal/items", icon: Package },
-        { name: "My Orders", href: "/vendor-portal/orders", icon: Home },
+        { name: "My Ledger", href: "/vendor-portal/ledger", icon: BookOpen },
+        { name: "My Orders", href: "/vendor-portal/orders", icon: Package },
       ];
 
   return (

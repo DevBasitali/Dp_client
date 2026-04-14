@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useVendors, useDeleteVendor, useRecordInventory, Vendor } from "@/hooks/useVendors";
 import { useBranches } from "@/hooks/useBranches";
@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Edit, Trash2, Plus, Loader2, Users, Search, Eye, ClipboardList } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "sonner";
+import PaginationBar from "@/components/ui/pagination-bar";
 
 export default function VendorsPage() {
   const router = useRouter();
@@ -28,6 +29,11 @@ export default function VendorsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const ITEMS_PER_PAGE = 10;
+
+  useEffect(() => { setCurrentPage(1); }, [searchTerm]);
 
   const [recordModalOpen, setRecordModalOpen] = useState(false);
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
@@ -110,9 +116,14 @@ export default function VendorsPage() {
     router.push(`/vendors/${id}`);
   };
 
-  const filteredVendors = vendors?.filter(v => 
-    v.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredVendors = vendors?.filter(v =>
+    v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (v.category && v.category.toLowerCase().includes(searchTerm.toLowerCase()))
+  ) ?? [];
+
+  const paginatedVendors = filteredVendors.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
   );
 
   return (
@@ -169,6 +180,11 @@ export default function VendorsPage() {
             </div>
           ) : (
             <>
+              {/* Result count */}
+              <p className="text-sm text-gray-500 px-4 pt-3">
+                Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredVendors.length)}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredVendors.length)} of {filteredVendors.length}
+              </p>
+
               {/* Desktop table */}
               <div className="hidden md:block overflow-x-auto">
                 <Table>
@@ -182,7 +198,7 @@ export default function VendorsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredVendors?.map((vendor) => (
+                    {paginatedVendors.map((vendor) => (
                       <TableRow key={vendor.id} className="hover:bg-slate-50 transition-colors">
                         <TableCell className="font-medium text-[#1A1A2E]">{vendor.name}</TableCell>
                         <TableCell className="text-gray-600">{vendor.category || "General"}</TableCell>
@@ -229,7 +245,7 @@ export default function VendorsPage() {
 
               {/* Mobile cards */}
               <div className="block md:hidden divide-y">
-                {filteredVendors?.map((vendor) => (
+                {paginatedVendors.map((vendor) => (
                   <div key={vendor.id} className="p-4 space-y-3">
                     <div className="flex justify-between items-start">
                       <div>
@@ -270,6 +286,16 @@ export default function VendorsPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+
+              {/* Pagination */}
+              <div className="px-4 pb-4">
+                <PaginationBar
+                  currentPage={currentPage}
+                  totalItems={filteredVendors.length}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                  onPageChange={setCurrentPage}
+                />
               </div>
             </>
           )}

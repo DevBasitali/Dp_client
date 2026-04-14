@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useVendorOrders } from "@/hooks/useVendorOrders";
 import { useAuthStore } from "@/store/authStore";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,11 +11,14 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import PaginationBar from "@/components/ui/pagination-bar";
 
 export default function VendorOrdersPage() {
   const { user } = useAuthStore();
   const isManager = user?.role === "branch_manager";
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   const handleDownload = async (orderId: string) => {
     try {
@@ -45,6 +48,9 @@ export default function VendorOrdersPage() {
   // If manager, we might need to filter by their branch, 
   // but let's assume backend scopes it or we request it explicitly
   const { data: orders, isLoading, isError } = useVendorOrders(isManager ? user.branchId ?? undefined : undefined);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setCurrentPage(1); }, []);
 
   return (
     <div className="space-y-6 lg:p-4 pb-24">
@@ -88,6 +94,11 @@ export default function VendorOrdersPage() {
             </div>
           ) : (
             <>
+              {/* Result count */}
+              <p className="text-sm text-gray-500 px-4 pt-3">
+                Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, orders!.length)}–{Math.min(currentPage * ITEMS_PER_PAGE, orders!.length)} of {orders!.length}
+              </p>
+
               {/* Desktop table */}
               <div className="hidden md:block overflow-x-auto">
                 <Table>
@@ -102,7 +113,7 @@ export default function VendorOrdersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {orders?.map((order) => (
+                    {orders?.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((order) => (
                       <TableRow key={order.id} className="hover:bg-slate-50 transition-colors">
                         <TableCell className="font-medium text-[#1A1A2E]">
                           {format(new Date(order.created_at), "dd MMM yyyy")}
@@ -166,7 +177,7 @@ export default function VendorOrdersPage() {
 
               {/* Mobile cards */}
               <div className="block md:hidden space-y-3 p-4">
-                {orders?.map((order) => {
+                {orders?.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((order) => {
                   const canEdit = !isManager || (new Date().getTime() - new Date(order.created_at).getTime()) < 5 * 60 * 60 * 1000;
                   return (
                     <div key={order.id} className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
@@ -235,6 +246,16 @@ export default function VendorOrdersPage() {
                     </div>
                   );
                 })}
+              </div>
+
+              {/* Pagination */}
+              <div className="px-4 pb-4">
+                <PaginationBar
+                  currentPage={currentPage}
+                  totalItems={orders?.length ?? 0}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                  onPageChange={setCurrentPage}
+                />
               </div>
             </>
           )}
