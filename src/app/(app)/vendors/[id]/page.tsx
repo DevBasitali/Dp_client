@@ -164,7 +164,7 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
   }
 
   return (
-    <div className="space-y-6 lg:p-4 pb-24">
+    <div className="space-y-6 lg:p-4 pb-28">
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center space-x-4">
@@ -243,7 +243,7 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
             {isOwner && (
               <div className="flex flex-col items-end gap-1">
                 <Select value={selectedBranch} onValueChange={(val: string | null) => setSelectedBranch(val ?? 'all')}>
-                  <SelectTrigger className="w-[180px] h-8 text-sm">
+                  <SelectTrigger className="w-full md:w-[180px] h-8 text-sm">
                     <SelectValue placeholder="All Branches" />
                   </SelectTrigger>
                   <SelectContent>
@@ -280,43 +280,36 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[110px]">Date</TableHead>
-                    <TableHead className="w-[110px]">Type</TableHead>
-                    <TableHead className="hidden md:table-cell">Description</TableHead>
-                    <TableHead className="hidden md:table-cell w-[120px]">Branch</TableHead>
-                    <TableHead className="w-[130px] text-right">Amount</TableHead>
-                    <TableHead className="hidden md:table-cell w-[120px]">Source</TableHead>
-                    <TableHead className="w-[140px] text-right">Balance</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredLedger.map((row, i) => (
-                    <>
-                      <TableRow
-                        key={`row-${i}`}
-                        className="md:cursor-default cursor-pointer hover:bg-slate-50"
-                        onClick={() => setExpandedRow(expandedRow === i ? null : i)}
-                      >
+            <>
+              {/* Desktop table */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[110px]">Date</TableHead>
+                      <TableHead className="w-[110px]">Type</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="w-[120px]">Branch</TableHead>
+                      <TableHead className="w-[130px] text-right">Amount</TableHead>
+                      <TableHead className="w-[120px]">Source</TableHead>
+                      <TableHead className="w-[140px] text-right">Balance</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredLedger.map((row, i) => (
+                      <TableRow key={i} className="hover:bg-slate-50">
                         <TableCell className="text-xs text-gray-500 whitespace-nowrap">
                           {format(new Date(row.date), "dd MMM yyyy")}
                         </TableCell>
                         <TableCell>
                           {row.type === "INVENTORY" ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              Inventory
-                            </span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Inventory</span>
                           ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                              Payment
-                            </span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Payment</span>
                           )}
                         </TableCell>
-                        <TableCell className="hidden md:table-cell text-sm">{row.description}</TableCell>
-                        <TableCell className="hidden md:table-cell text-xs text-gray-500">{row.branch?.name ?? "—"}</TableCell>
+                        <TableCell className="text-sm">{row.description}</TableCell>
+                        <TableCell className="text-xs text-gray-500">{row.branch?.name ?? "—"}</TableCell>
                         <TableCell className="text-right font-mono text-sm">
                           {row.type === "INVENTORY" ? (
                             <span className="text-gray-800">{formatMoney(row.amount)}</span>
@@ -324,7 +317,7 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
                             <span className="text-red-600">−{formatMoney(row.amount)}</span>
                           )}
                         </TableCell>
-                        <TableCell className="hidden md:table-cell">
+                        <TableCell>
                           {row.type === "PAYMENT" && row.source ? (
                             row.source === "SALE" ? (
                               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">FROM SALE</span>
@@ -341,24 +334,49 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
                           </span>
                         </TableCell>
                       </TableRow>
-                      {expandedRow === i && (
-                        <TableRow key={`expand-${i}`} className="md:hidden bg-gray-50">
-                          <TableCell colSpan={4} className="py-2 px-4">
-                            <div className="text-xs space-y-1 text-gray-600">
-                              <div><span className="text-gray-400 mr-1">Description:</span>{row.description}</div>
-                              <div><span className="text-gray-400 mr-1">Branch:</span>{row.branch?.name || "—"}</div>
-                              {row.type === "PAYMENT" && row.source && (
-                                <div><span className="text-gray-400 mr-1">Source:</span>{row.source === "SALE" ? "From Sale" : "From Cal"}</div>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="block md:hidden space-y-3 p-4">
+                {filteredLedger.map((row, i) => (
+                  <div key={i} className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-gray-500 text-xs">
+                        {format(new Date(row.date), "dd MMM yyyy")}
+                      </span>
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${row.type === "INVENTORY" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}>
+                        {row.type === "INVENTORY" ? "Inventory" : "Payment"}
+                      </span>
+                    </div>
+
+                    <p className="text-[#1B2A4A] font-medium text-sm mb-2">{row.description}</p>
+
+                    <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                      <div className="text-sm">
+                        <span className="text-gray-500 text-xs">Branch: </span>
+                        <span className="text-gray-700">{row.branch?.name ?? "—"}</span>
+                        {row.type === "PAYMENT" && row.source && (
+                          <span className={`ml-2 text-xs px-1.5 py-0.5 rounded font-medium ${row.source === "SALE" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"}`}>
+                            {row.source}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className={`font-semibold text-sm ${row.type === "PAYMENT" ? "text-red-600" : "text-gray-800"}`}>
+                          {row.type === "PAYMENT" ? "−" : ""}{formatMoney(row.amount)}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Bal: {formatMoney(row.runningBalance)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

@@ -47,7 +47,7 @@ export default function VendorOrdersPage() {
   const { data: orders, isLoading, isError } = useVendorOrders(isManager ? user.branchId ?? undefined : undefined);
 
   return (
-    <div className="space-y-6 lg:p-4">
+    <div className="space-y-6 lg:p-4 pb-24">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
         <div>
           <h1 className="text-2xl font-bold text-[#1A1A2E] flex items-center">
@@ -87,81 +87,156 @@ export default function VendorOrdersPage() {
               </Link>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-gray-50">
-                  <TableRow>
-                    <TableHead className="font-semibold text-gray-700">Date</TableHead>
-                    {!isManager && <TableHead className="font-semibold text-gray-700">Branch</TableHead>}
-                    <TableHead className="font-semibold text-gray-700">Vendor</TableHead>
-                    <TableHead className="font-semibold text-gray-700 text-center">Items</TableHead>
-                    <TableHead className="font-semibold text-gray-700 text-center">WhatsApp</TableHead>
-                    <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {orders?.map((order) => (
-                    <TableRow key={order.id} className="hover:bg-slate-50 transition-colors">
-                      <TableCell className="font-medium text-[#1A1A2E]">
-                        {format(new Date(order.created_at), "dd MMM yyyy")}
-                      </TableCell>
-                      {!isManager && (
-                        <TableCell className="text-gray-600">
-                          {order.branch?.name || "—"}
+            <>
+              {/* Desktop table */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-gray-50">
+                    <TableRow>
+                      <TableHead className="font-semibold text-gray-700">Date</TableHead>
+                      {!isManager && <TableHead className="font-semibold text-gray-700">Branch</TableHead>}
+                      <TableHead className="font-semibold text-gray-700">Vendor</TableHead>
+                      <TableHead className="font-semibold text-gray-700 text-center">Items</TableHead>
+                      <TableHead className="font-semibold text-gray-700 text-center">WhatsApp</TableHead>
+                      <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {orders?.map((order) => (
+                      <TableRow key={order.id} className="hover:bg-slate-50 transition-colors">
+                        <TableCell className="font-medium text-[#1A1A2E]">
+                          {format(new Date(order.created_at), "dd MMM yyyy")}
                         </TableCell>
-                      )}
-                      <TableCell className="text-gray-600">
-                        {order.vendor?.name || "—"}
-                      </TableCell>
-                      <TableCell className="text-center font-medium">
-                        {order.items?.length || 0}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {order.whatsapp_sent ? (
-                          <CheckCircle2 className="w-5 h-5 text-green-500 mx-auto" />
-                        ) : (
-                          <XCircle className="w-5 h-5 text-red-400 mx-auto" />
+                        {!isManager && (
+                          <TableCell className="text-gray-600">
+                            {order.branch?.name || "—"}
+                          </TableCell>
                         )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end items-center gap-2">
-                          {order.pdf_url ? (
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="h-8 shadow-sm text-blue-600 border-blue-100 bg-blue-50 hover:bg-blue-100"
-                              onClick={() => handleDownload(order.id)}
-                              disabled={downloadingId === order.id}
-                            >
-                              {downloadingId === order.id ? (
-                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                              ) : (
-                                <Download className="w-4 h-4 mr-1" />
-                              )}
-                              PDF
-                            </Button>
+                        <TableCell className="text-gray-600">
+                          {order.vendor?.name || "—"}
+                        </TableCell>
+                        <TableCell className="text-center font-medium">
+                          {order.items?.length || 0}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {order.whatsapp_sent ? (
+                            <CheckCircle2 className="w-5 h-5 text-green-500 mx-auto" />
                           ) : (
-                            <span className="text-xs text-slate-400">Processing</span>
+                            <XCircle className="w-5 h-5 text-red-400 mx-auto" />
                           )}
-
-                          {(!isManager || (new Date().getTime() - new Date(order.created_at).getTime()) < 5 * 60 * 60 * 1000) ? (
-                            <Link href={`/vendor-orders/${order.id}/edit`}>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <Pencil className="w-4 h-4 text-gray-500 hover:text-[#1B2A4A]" />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end items-center gap-2">
+                            {order.pdf_url ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 shadow-sm text-blue-600 border-blue-100 bg-blue-50 hover:bg-blue-100"
+                                onClick={() => handleDownload(order.id)}
+                                disabled={downloadingId === order.id}
+                              >
+                                {downloadingId === order.id ? (
+                                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                ) : (
+                                  <Download className="w-4 h-4 mr-1" />
+                                )}
+                                PDF
                               </Button>
-                            </Link>
-                          ) : (
-                            <Button variant="ghost" size="icon" disabled className="h-8 w-8">
-                              <Pencil className="w-4 h-4 text-gray-300" />
-                            </Button>
+                            ) : (
+                              <span className="text-xs text-slate-400">Processing</span>
+                            )}
+                            {(!isManager || (new Date().getTime() - new Date(order.created_at).getTime()) < 5 * 60 * 60 * 1000) ? (
+                              <Link href={`/vendor-orders/${order.id}/edit`}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <Pencil className="w-4 h-4 text-gray-500 hover:text-[#1B2A4A]" />
+                                </Button>
+                              </Link>
+                            ) : (
+                              <Button variant="ghost" size="icon" disabled className="h-8 w-8">
+                                <Pencil className="w-4 h-4 text-gray-300" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="block md:hidden space-y-3 p-4">
+                {orders?.map((order) => {
+                  const canEdit = !isManager || (new Date().getTime() - new Date(order.created_at).getTime()) < 5 * 60 * 60 * 1000;
+                  return (
+                    <div key={order.id} className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h3 className="font-semibold text-[#1B2A4A] text-base">{order.vendor?.name || "—"}</h3>
+                          {!isManager && (
+                            <p className="text-gray-500 text-sm mt-0.5">{order.branch?.name || "—"}</p>
                           )}
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                        <span className="text-xs text-gray-400 mt-0.5">
+                          {format(new Date(order.created_at), "dd MMM yyyy")}
+                        </span>
+                      </div>
+
+                      {order.items && order.items.length > 0 && (
+                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                          {order.items.map((i) => i.item_name).join(", ")}
+                        </p>
+                      )}
+
+                      <div className="flex items-center gap-2 mb-3">
+                        {order.whatsapp_sent ? (
+                          <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">
+                            <CheckCircle2 className="w-3 h-3" /> WhatsApp Sent
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-500 font-medium">
+                            <XCircle className="w-3 h-3" /> Not Sent
+                          </span>
+                        )}
+                        {!order.pdf_url && (
+                          <span className="text-xs text-slate-400">PDF Processing...</span>
+                        )}
+                      </div>
+
+                      <div className="flex gap-2 pt-3 border-t border-gray-100">
+                        {order.pdf_url && (
+                          <button
+                            onClick={() => handleDownload(order.id)}
+                            disabled={downloadingId === order.id}
+                            className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg border border-blue-200 text-blue-600 text-sm font-medium disabled:opacity-50"
+                          >
+                            {downloadingId === order.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Download className="w-3.5 h-3.5" />
+                            )}
+                            Download PDF
+                          </button>
+                        )}
+                        {canEdit ? (
+                          <Link href={`/vendor-orders/${order.id}/edit`} className="flex-1">
+                            <button className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-[#1B2A4A] text-[#1B2A4A] text-sm font-medium">
+                              <Pencil className="w-3.5 h-3.5" />
+                              Edit
+                            </button>
+                          </Link>
+                        ) : (
+                          <button disabled className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg border border-gray-200 text-gray-300 text-sm font-medium">
+                            <Pencil className="w-3.5 h-3.5" />
+                            Edit
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

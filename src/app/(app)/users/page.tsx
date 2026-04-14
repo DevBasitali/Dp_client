@@ -76,59 +76,107 @@ export default function UsersPage() {
               <p>No users found matching this filter.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-gray-50">
-                  <TableRow>
-                    <TableHead className="font-semibold text-gray-700">Name</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Email</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Role</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Binding (Branch/Vendor)</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Status</TableHead>
-                    <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users?.map((u) => (
-                    <TableRow key={u.id} className="hover:bg-slate-50">
-                      <TableCell className="font-medium text-[#1A1A2E]">{u.name}</TableCell>
-                      <TableCell className="text-gray-600">{u.email}</TableCell>
-                      <TableCell>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium uppercase bg-slate-100 text-slate-800 border">
-                          {u.role.replace('_', ' ')}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-gray-500 text-sm">
-                        {u.role === 'branch_manager' ? (u.branch?.name || "Unassigned") : 
-                         u.role === 'vendor' ? (u.vendor?.name || "Unassigned") : 
-                         "—"}
-                      </TableCell>
-                      <TableCell>
-                        {u.is_active ? (
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                            Active
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-slate-50 text-slate-500 border-slate-200">
-                            Inactive
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => handleEdit(u)}
-                          className="h-8 w-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                      </TableCell>
+            <>
+              {/* Desktop table */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-gray-50">
+                    <TableRow>
+                      <TableHead className="font-semibold text-gray-700">Name</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Email</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Role</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Binding (Branch/Vendor)</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Status</TableHead>
+                      <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {users?.map((u) => (
+                      <TableRow key={u.id} className="hover:bg-slate-50">
+                        <TableCell className="font-medium text-[#1A1A2E]">{u.name}</TableCell>
+                        <TableCell className="text-gray-600">{u.email}</TableCell>
+                        <TableCell>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium uppercase bg-slate-100 text-slate-800 border">
+                            {u.role.replace('_', ' ')}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-gray-500 text-sm">
+                          {u.role === 'branch_manager' ? (u.branch?.name || "Unassigned") :
+                           u.role === 'vendor' ? (u.vendor?.name || "Unassigned") :
+                           "—"}
+                        </TableCell>
+                        <TableCell>
+                          {u.is_active ? (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              Active
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-slate-50 text-slate-500 border-slate-200">
+                              Inactive
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(u)}
+                            className="h-8 w-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="block md:hidden space-y-3 p-4">
+                {users?.length === 0 ? (
+                  <p className="text-center py-8 text-gray-400 text-sm">
+                    No users yet. Add your first user above.
+                  </p>
+                ) : (
+                  users?.map((u) => (
+                    <div key={u.id} className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-[#1B2A4A] flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                            {u.name?.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-[#1B2A4A] text-sm">{u.name}</h3>
+                            <p className="text-gray-500 text-xs mt-0.5">{u.email}</p>
+                          </div>
+                        </div>
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium flex-shrink-0 ml-2 ${u.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}>
+                          {u.is_active ? "Active" : "Inactive"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-3 mt-2 border-t border-gray-100">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${u.role === "owner" ? "bg-purple-100 text-purple-700" : u.role === "branch_manager" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}>
+                            {u.role === "branch_manager" ? "Manager" : u.role === "vendor" ? "Vendor" : "Owner"}
+                          </span>
+                          <span className="text-gray-500 text-xs">
+                            {u.branch?.name || u.vendor?.name || "—"}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleEdit(u)}
+                          className="text-xs px-3 py-1.5 rounded-lg border border-[#1B2A4A] text-[#1B2A4A] font-medium"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
