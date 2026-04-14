@@ -108,7 +108,7 @@ export default function PlaceVendorOrderPage() {
   };
 
   return (
-    <div className="space-y-6 lg:p-4 max-w-3xl mx-auto pb-24">
+    <div className="space-y-6 lg:p-4 max-w-3xl mx-auto pb-32 md:pb-8">
       <div className="flex items-center space-x-4">
         <Link href="/vendor-orders">
           <Button variant="ghost" size="icon" className="h-10 w-10 text-gray-500 hover:text-black">
@@ -215,26 +215,32 @@ export default function PlaceVendorOrderPage() {
 
                 <div className="mt-4 pt-4 border-t border-gray-100">
                   <Label className="mb-2 block text-gray-600">Reference Image (Optional)</Label>
-                  <label className="flex items-center justify-center w-full h-24 sm:h-32 px-4 transition bg-white border-2 border-gray-300 border-dashed rounded-md appearance-none cursor-pointer hover:border-[#F0A500] focus:outline-none overflow-hidden relative">
+                  <label className="block w-full cursor-pointer">
                     {images[index] ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img 
-                        src={URL.createObjectURL(images[index] as Blob)} 
-                        alt="Preview" 
-                        className="object-cover w-full h-full absolute inset-0 z-0 opacity-40 mix-blend-multiply"
-                      />
-                    ) : null}
-                    <div className="flex flex-col items-center justify-center space-y-2 z-10 text-center">
-                      <Camera className={`w-8 h-8 ${images[index] ? 'text-[#1B2A4A] drop-shadow-md' : 'text-gray-400'}`} />
-                      <span className="font-medium text-gray-600">
-                        {images[index] ? images[index]?.name : "Tap to open Camera or Gallery"}
-                      </span>
-                    </div>
-                    <input 
-                      type="file" 
-                      accept="image/jpeg, image/png, image/webp" 
-                      onChange={(e) => handleImageChange(index, e)} 
-                      className="hidden" 
+                      <div className="w-full overflow-hidden rounded-lg">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={URL.createObjectURL(images[index] as Blob)}
+                          alt="Preview"
+                          className="w-full h-40 object-cover rounded-lg"
+                        />
+                        <p className="truncate text-xs text-gray-500 mt-1" style={{ maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {images[index]?.name}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center w-full h-24 sm:h-32 px-4 transition bg-white border-2 border-gray-300 border-dashed rounded-md appearance-none hover:border-[#F0A500] focus:outline-none">
+                        <div className="flex flex-col items-center justify-center space-y-2 text-center">
+                          <Camera className="w-8 h-8 text-gray-400" />
+                          <span className="font-medium text-gray-600">Tap to open Camera or Gallery</span>
+                        </div>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/jpeg, image/png, image/webp"
+                      onChange={(e) => handleImageChange(index, e)}
+                      className="hidden"
                     />
                   </label>
                 </div>
@@ -254,7 +260,7 @@ export default function PlaceVendorOrderPage() {
         </div>
 
         {/* Fixed bottom bar for Mobile-first pattern */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t z-10 md:static md:bg-transparent md:border-0 md:p-0">
+        <div className="fixed bottom-20 left-0 right-0 p-4 bg-white border-t z-10 md:static md:bg-transparent md:border-0 md:p-0 md:bottom-auto">
           <div className="max-w-3xl mx-auto flex items-center justify-between">
             <span className="text-sm font-medium text-gray-500 hidden md:inline">
               Generates PDF and sends via WhatsApp

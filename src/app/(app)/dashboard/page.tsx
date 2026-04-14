@@ -72,6 +72,7 @@ export default function OwnerDashboard() {
     },
     staleTime: 60 * 1000,
     refetchInterval: 2 * 60 * 1000,
+    placeholderData: (previousData) => previousData,
   });
 
   const hasAnyData =

@@ -10,12 +10,9 @@ import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 
-// Schema matching the expected backend logic
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
   password: z.string().min(1, "Password is required"),
@@ -42,13 +39,11 @@ export default function LoginPage() {
   const loginMutation = useMutation({
     mutationFn: async (data: LoginFormValues) => {
       const response = await api.post("/auth/login", data);
-      return response.data; // { success, data: { user, token } }
+      return response.data;
     },
     onSuccess: (response) => {
       if (response.success && response.data) {
         const { user: raw, token } = response.data;
-        // Server returns DB field names (id, branch_id, vendor_id).
-        // authStore expects camelCase (userId, branchId, vendorId). Map here.
         setAuth({
           userId:   raw.id,
           role:     raw.role,
@@ -78,100 +73,116 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center px-4 bg-slate-50">
-      <div className="mb-8 text-center">
-        {/* Brand Header */}
-        <h1 className="text-2xl font-bold text-[#1B2A4A]">Dollar Point</h1>
-        <div className="w-12 h-1 bg-[#F0A500] mx-auto mt-2 rounded"></div>
+    <div
+      className="min-h-screen flex flex-col items-center justify-center px-4 bg-[#1B2A4A]"
+      style={{
+        backgroundImage: "radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px)",
+        backgroundSize: "20px 20px",
+      }}
+    >
+      {/* Logo section */}
+      <div className="flex flex-col items-center mb-6">
+        <div style={{ filter: "drop-shadow(0 0 12px rgba(240,165,0,0.5))" }}>
+          <svg width="56" height="56" viewBox="0 0 56 56">
+            <polygon
+              points="28,4 50,16 50,40 28,52 6,40 6,16"
+              fill="none"
+              stroke="#F0A500"
+              strokeWidth="2"
+            />
+            <text
+              x="28"
+              y="34"
+              textAnchor="middle"
+              fill="#F0A500"
+              fontSize="20"
+              fontWeight="bold"
+              fontFamily="Inter"
+            >
+              $
+            </text>
+          </svg>
+        </div>
+        <h1 className="text-white text-3xl font-bold tracking-wide mt-3">Dollar Point</h1>
+        <p className="text-white/40 text-xs tracking-widest mt-1">MANAGE SMARTER. GROW FASTER.</p>
       </div>
 
-      <Card className="w-full max-w-md mx-auto shadow-sm border-0">
-        <CardHeader>
-          <CardTitle className="text-xl font-semibold text-center text-[#1A1A2E]">
-            Welcome Back
-          </CardTitle>
-          <CardDescription className="text-center text-sm text-gray-500">
-            Sign in to access your portal
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-            {errorMessage && (
-              <div className="p-3 text-sm text-red-600 bg-red-50 rounded-md border border-red-100 text-center font-medium">
-                {errorMessage}
-              </div>
+      {/* Form card */}
+      <div
+        className="bg-white rounded-3xl mx-4 p-8 max-w-sm w-full"
+        style={{ boxShadow: "0 25px 50px rgba(0,0,0,0.4)" }}
+      >
+        <h2 className="text-[#1B2A4A] text-2xl font-bold">Welcome Back</h2>
+        <p className="text-gray-400 text-sm mt-1 mb-6">Sign in to your account</p>
+
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {errorMessage && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-600 text-sm mt-3">
+              {errorMessage}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+              Email
+            </label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="name@dollarpoint.pk"
+              className={`h-12 bg-gray-50 border rounded-xl px-4 text-[#1A1A2E] text-sm focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-[#1B2A4A] focus:bg-white transition-all ${
+                form.formState.errors.email ? "border-red-500" : "border-gray-200"
+              }`}
+              {...form.register("email")}
+            />
+            {form.formState.errors.email && (
+              <p className="text-xs text-red-500 mt-1">{form.formState.errors.email.message}</p>
             )}
-            
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-600 text-xs uppercase tracking-wider font-semibold">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="name@dollarpoint.pk"
-                className={`h-12 px-4 shadow-sm focus-visible:ring-[#1B2A4A] ${
-                  form.formState.errors.email ? "border-red-500" : "border-gray-200"
-                }`}
-                {...form.register("email")}
-              />
-              {form.formState.errors.email && (
-                <p className="text-xs text-red-500 font-medium">{form.formState.errors.email.message}</p>
-              )}
-            </div>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-gray-600 text-xs uppercase tracking-wider font-semibold">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                className={`h-12 px-4 shadow-sm focus-visible:ring-[#1B2A4A] ${
-                  form.formState.errors.password ? "border-red-500" : "border-gray-200"
-                }`}
-                {...form.register("password")}
-              />
-              {form.formState.errors.password && (
-                <p className="text-xs text-red-500 font-medium">{form.formState.errors.password.message}</p>
-              )}
-            </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+              Password
+            </label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              className={`h-12 bg-gray-50 border rounded-xl px-4 text-[#1A1A2E] text-sm focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-[#1B2A4A] focus:bg-white transition-all ${
+                form.formState.errors.password ? "border-red-500" : "border-gray-200"
+              }`}
+              {...form.register("password")}
+            />
+            {form.formState.errors.password && (
+              <p className="text-xs text-red-500 mt-1">{form.formState.errors.password.message}</p>
+            )}
+          </div>
 
-            <Button
-              type="submit"
-              className="w-full h-12 bg-[#1B2A4A] hover:bg-slate-800 text-white font-semibold text-[15px] rounded-lg mt-2 shadow-md transition-all active:scale-[0.98]"
-              disabled={loginMutation.isPending}
-            >
-              {loginMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Authenticating...
-                </>
-              ) : (
-                "Log In"
-              )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+          <Button
+            type="submit"
+            className="w-full h-12 bg-[#1B2A4A] text-white rounded-xl font-semibold text-sm mt-2 active:scale-[0.98] transition-transform hover:bg-slate-800"
+            disabled={loginMutation.isPending}
+          >
+            {loginMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Signing in...
+              </>
+            ) : (
+              "Log In"
+            )}
+          </Button>
+        </form>
+      </div>
 
-      <p className="text-center text-sm text-gray-500 mt-6">
-        New owner?{" "}
-        <Link href="/signup" className="text-[#F0A500] font-semibold hover:underline">
+      {/* Footer */}
+      <p className="text-white/40 text-xs text-center mt-6">
+        New owner?
+        <Link href="/signup" className="text-[#F0A500] font-medium cursor-pointer ml-1">
           Sign up here
         </Link>
       </p>
 
-      {/* Footer support text */}
-      <p className="text-center text-xs text-gray-400 mt-4">
-        Designed for Dollar Point internal use. Need help? Contact the owner.
-      </p>
-
-      <div className="text-center mt-3">
-        <a
-          href="/super-admin/login"
-          className="text-[10px] text-gray-300 opacity-30 hover:opacity-40 transition-opacity duration-300 select-none"
-        >
-          SuperAdmin
-        </a>
-      </div>
     </div>
   );
 }

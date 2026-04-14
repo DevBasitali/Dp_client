@@ -21,6 +21,7 @@ import {
 import Sidebar from "./Sidebar";
 import BottomNav from "./BottomNav";
 import { api } from "@/lib/api";
+import Link from "next/link";
 
 /* ─── Owner bottom nav tabs ─────────────────────── */
 const OWNER_BOTTOM_TABS = [
@@ -146,7 +147,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             }
 
             return (
-              <a
+              <Link
                 key={tab.name}
                 href={tab.href as string}
                 className={`flex-1 flex flex-col items-center justify-center py-2 gap-1 text-xs cursor-pointer transition-colors ${
@@ -162,7 +163,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 {isActive && (
                   <span className="absolute bottom-1 w-1 h-1 rounded-full bg-[#1B2A4A]" />
                 )}
-              </a>
+              </Link>
             );
           })}
         </nav>
@@ -193,7 +194,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 const Icon = link.icon;
                 const isActive = pathname.startsWith(link.href);
                 return (
-                  <a
+                  <Link
                     key={link.name}
                     href={link.href}
                     onClick={() => setIsMoreOpen(false)}
@@ -205,7 +206,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   >
                     <Icon className={`w-5 h-5 ${isActive ? "text-[#1B2A4A]" : "text-gray-400"}`} />
                     <span className="text-sm">{link.name}</span>
-                  </a>
+                  </Link>
                 );
               })}
               {/* Divider */}

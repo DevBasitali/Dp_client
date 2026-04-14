@@ -40,6 +40,7 @@ export const useVendors = () => {
       return (data.data || []) as Vendor[];
     },
     staleTime: 10 * 60 * 1000,
+    placeholderData: (previousData) => previousData,
   });
 };
 

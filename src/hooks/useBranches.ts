@@ -18,6 +18,7 @@ export const useBranches = () => {
       return (data.data || []) as Branch[];
     },
     staleTime: 10 * 60 * 1000,
+    placeholderData: (previousData) => previousData,
   });
 };
 

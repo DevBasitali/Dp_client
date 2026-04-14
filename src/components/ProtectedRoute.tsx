@@ -38,13 +38,15 @@ export default function ProtectedRoute({
     }
   }, [mounted, isAuthenticated, user, pathname, router, allowedRoles]);
 
-  if (!mounted) {
-    return null; // Return nothing until hydrated to prevent flashing
-  }
+  // If authenticated, render immediately — Zustand persist restores from
+  // localStorage synchronously, so isAuthenticated is true on first client
+  // render. This avoids the blank-page flash on return visits.
+  if (isAuthenticated) return <>{children}</>;
 
-  // If not authenticated, the useEffect will redirect. 
-  // We can return null to avoid rendering protected content.
-  if (!isAuthenticated && pathname !== "/login") return null;
+  // Not authenticated and not yet mounted (SSR / first paint) — render nothing
+  // to avoid hydration mismatch. The useEffect above will redirect once mounted.
+  if (!mounted) return null;
 
-  return <>{children}</>;
+  // Mounted but not authenticated — redirect is in flight via useEffect.
+  return null;
 }

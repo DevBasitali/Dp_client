@@ -46,6 +46,7 @@ export const useDailyClosings = (filters?: { branchId?: string; month?: number; 
       return (data.data || []) as DailyClosing[];
     },
     staleTime: 2 * 60 * 1000,
+    placeholderData: (previousData) => previousData,
   });
 };
 
