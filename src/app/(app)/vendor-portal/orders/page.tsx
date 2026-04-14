@@ -33,58 +33,106 @@ export default function VendorOrdersHistoryPage() {
               Failed to load order history. Please try again.
             </div>
           ) : orders?.length === 0 ? (
-            <div className="flex flex-col justify-center items-center h-48 text-gray-500">
-              <ClipboardList className="w-12 h-12 text-gray-200 mb-2" />
-              <p>No orders bound to your account yet.</p>
+            <div className="text-center py-12 text-gray-400">
+              <p className="text-sm font-medium">No orders yet</p>
+              <p className="text-xs mt-1">Orders from branches will appear here.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-gray-50">
-                  <TableRow>
-                    <TableHead className="font-semibold text-gray-700">Date Received</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Branch Requesting</TableHead>
-                    <TableHead className="font-semibold text-gray-700 text-center">Items Count</TableHead>
-                    <TableHead className="text-right font-semibold text-gray-700">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {orders?.map((order) => (
-                    <TableRow key={order.id} className="hover:bg-slate-50 transition-colors">
-                      <TableCell className="font-medium text-[#1A1A2E]">
-                        {format(new Date(order.created_at), "dd MMM yyyy")}
-                      </TableCell>
-                      <TableCell className="text-gray-600">
-                        {order.branch?.name || "—"}
-                      </TableCell>
-                      <TableCell className="text-center font-medium">
-                        {order.items?.length || 0}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {order.pdf_url ? (
-                          <a 
-                            href={order.pdf_url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                          >
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="h-8 shadow-sm text-blue-600 border-blue-100 bg-blue-50 hover:bg-blue-100"
-                            >
-                              <Download className="w-4 h-4 mr-1" />
-                              PDF Copy
-                            </Button>
-                          </a>
-                        ) : (
-                          <span className="text-xs text-slate-400">Processing</span>
-                        )}
-                      </TableCell>
+            <>
+              {/* Desktop table */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-gray-50">
+                    <TableRow>
+                      <TableHead className="font-semibold text-gray-700">Date Received</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Branch Requesting</TableHead>
+                      <TableHead className="font-semibold text-gray-700 text-center">Items Count</TableHead>
+                      <TableHead className="text-right font-semibold text-gray-700">Action</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {orders?.map((order) => (
+                      <TableRow key={order.id} className="hover:bg-slate-50 transition-colors">
+                        <TableCell className="font-medium text-[#1A1A2E]">
+                          {format(new Date(order.created_at), "dd MMM yyyy")}
+                        </TableCell>
+                        <TableCell className="text-gray-600">
+                          {order.branch?.name || "—"}
+                        </TableCell>
+                        <TableCell className="text-center font-medium">
+                          {order.items?.length || 0}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {order.pdf_url ? (
+                            <a
+                              href={order.pdf_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 shadow-sm text-blue-600 border-blue-100 bg-blue-50 hover:bg-blue-100"
+                              >
+                                <Download className="w-4 h-4 mr-1" />
+                                PDF Copy
+                              </Button>
+                            </a>
+                          ) : (
+                            <span className="text-xs text-slate-400">Processing</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="block md:hidden space-y-3 p-4">
+                {orders?.map((order) => (
+                  <div key={order.id} className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                    <div className="flex justify-between items-center mb-3">
+                      <div>
+                        <p className="font-semibold text-[#1B2A4A] text-sm">{order.branch?.name || "—"}</p>
+                        <p className="text-gray-400 text-xs mt-0.5">
+                          {format(new Date(order.created_at), "d MMM yyyy")}
+                        </p>
+                      </div>
+                      <span className="bg-blue-50 text-blue-600 text-xs px-2 py-1 rounded-full">
+                        {order.items?.length || 0} items
+                      </span>
+                    </div>
+
+                    {order.items && order.items.length > 0 && (
+                      <div className="mb-3">
+                        <p className="text-xs text-gray-500 mb-1">Items:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {order.items.map((item, i) => (
+                            <span key={i} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                              {item.item_name}: {item.quantity}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {order.pdf_url && (
+                      <div className="flex justify-end pt-3 border-t border-gray-100">
+                        <a
+                          href={order.pdf_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-medium px-3 py-1.5 rounded-lg bg-[#1B2A4A] text-white"
+                        >
+                          View PDF
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

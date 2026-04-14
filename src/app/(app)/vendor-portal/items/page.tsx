@@ -21,7 +21,7 @@ export default function VendorItemsPage() {
           <PackageOpen className="mr-2 text-[#F0A500]" />
           My Catalog Items
         </h1>
-        <p className="text-gray-500 text-sm">View items currently supplied to Dollar Point.</p>
+        <p className="text-gray-500 text-sm">Items your owner has assigned to your profile.</p>
       </div>
 
       <Card className="shadow-sm border-0 overflow-hidden">
@@ -35,9 +35,10 @@ export default function VendorItemsPage() {
               Failed to load your items. Please try again.
             </div>
           ) : items?.length === 0 ? (
-            <div className="flex flex-col justify-center items-center h-48 text-gray-500">
+            <div className="flex flex-col justify-center items-center h-48 text-gray-500 text-center px-6">
               <PackageOpen className="w-12 h-12 text-gray-200 mb-2" />
-              <p>No items found under your catalog.</p>
+              <p className="font-medium">No items assigned yet.</p>
+              <p className="text-sm text-gray-400 mt-1">Your owner will add items to your catalog once they are set up in the system.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">

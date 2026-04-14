@@ -103,7 +103,7 @@ export default function SuperAdminOwnersPage() {
     approveMutation.isPending || banMutation.isPending || unbanMutation.isPending;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-xl font-bold text-[#1B2A4A]">Owners</h1>
@@ -111,19 +111,19 @@ export default function SuperAdminOwnersPage() {
         </div>
         <Link
           href="/super-admin/create-owner"
-          className="px-4 py-2 bg-[#1B2A4A] text-white text-sm font-semibold rounded-lg hover:bg-slate-800 transition-colors"
+          className="w-full md:w-auto px-4 py-2 bg-[#1B2A4A] text-white text-sm font-semibold rounded-lg hover:bg-slate-800 transition-colors text-center"
         >
           + Create Owner
         </Link>
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-1 border-b border-gray-200">
+      <div className="flex gap-1 border-b border-gray-200 overflow-x-auto pb-2 scrollbar-hide">
         {TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
+            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px shrink-0 ${
               activeTab === tab.key
                 ? "border-[#1B2A4A] text-[#1B2A4A]"
                 : "border-transparent text-gray-500 hover:text-gray-700"
@@ -143,7 +143,7 @@ export default function SuperAdminOwnersPage() {
         ))}
       </div>
 
-      {/* Table */}
+      {/* Content */}
       {isLoading ? (
         <div className="flex items-center justify-center h-48">
           <Loader2 className="w-5 h-5 animate-spin text-[#1B2A4A]" />
@@ -157,45 +157,57 @@ export default function SuperAdminOwnersPage() {
           No owners found.
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  {["Name", "Email", "Status", "Joined", "Actions"].map((h) => (
-                    <th
-                      key={h}
-                      className={`px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider ${
-                        h === "Actions" ? "text-right" : "text-left"
-                      }`}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filtered.map((owner) => {
-                  const status = owner.accountStatus?.toLowerCase();
-                  return (
-                    <tr key={owner.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-[#1B2A4A]">{owner.name}</td>
-                      <td className="px-4 py-3 text-gray-500">{owner.email}</td>
-                      <td className="px-4 py-3">
-                        <StatusBadge status={owner.accountStatus} />
-                      </td>
-                      <td className="px-4 py-3 text-gray-500">{formatDate(owner.created_at)}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-2">
-                          {status === "pending" && (
-                            <>
-                              <button
-                                onClick={() => approveMutation.mutate(owner.id)}
-                                disabled={isActionPending}
-                                className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
-                              >
-                                Approve
-                              </button>
+        <>
+          {/* Desktop table */}
+          <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50">
+                    {["Name", "Email", "Status", "Joined", "Actions"].map((h) => (
+                      <th
+                        key={h}
+                        className={`px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider ${
+                          h === "Actions" ? "text-right" : "text-left"
+                        }`}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {filtered.map((owner) => {
+                    const status = owner.accountStatus?.toLowerCase();
+                    return (
+                      <tr key={owner.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-3 font-medium text-[#1B2A4A]">{owner.name}</td>
+                        <td className="px-4 py-3 text-gray-500">{owner.email}</td>
+                        <td className="px-4 py-3">
+                          <StatusBadge status={owner.accountStatus} />
+                        </td>
+                        <td className="px-4 py-3 text-gray-500">{formatDate(owner.created_at)}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-2">
+                            {status === "pending" && (
+                              <>
+                                <button
+                                  onClick={() => approveMutation.mutate(owner.id)}
+                                  disabled={isActionPending}
+                                  className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => banMutation.mutate(owner.id)}
+                                  disabled={isActionPending}
+                                  className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+                                >
+                                  Ban
+                                </button>
+                              </>
+                            )}
+                            {status === "approved" && (
                               <button
                                 onClick={() => banMutation.mutate(owner.id)}
                                 disabled={isActionPending}
@@ -203,35 +215,92 @@ export default function SuperAdminOwnersPage() {
                               >
                                 Ban
                               </button>
-                            </>
-                          )}
-                          {status === "approved" && (
-                            <button
-                              onClick={() => banMutation.mutate(owner.id)}
-                              disabled={isActionPending}
-                              className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
-                            >
-                              Ban
-                            </button>
-                          )}
-                          {status === "banned" && (
-                            <button
-                              onClick={() => unbanMutation.mutate(owner.id)}
-                              disabled={isActionPending}
-                              className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
-                            >
-                              Unban
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                            )}
+                            {status === "banned" && (
+                              <button
+                                onClick={() => unbanMutation.mutate(owner.id)}
+                                disabled={isActionPending}
+                                className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
+                              >
+                                Unban
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+
+          {/* Mobile cards */}
+          <div className="block md:hidden space-y-3">
+            {filtered.map((owner) => {
+              const status = owner.accountStatus?.toLowerCase();
+              return (
+                <div key={owner.id} className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-[#1B2A4A] flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                        {owner.name?.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-[#1B2A4A] text-sm">{owner.name}</h3>
+                        <p className="text-gray-500 text-xs mt-0.5">{owner.email}</p>
+                      </div>
+                    </div>
+                    <StatusBadge status={owner.accountStatus} />
+                  </div>
+
+                  <div className="text-xs text-gray-400 mb-3">
+                    Joined: {formatDate(owner.created_at)}
+                  </div>
+
+                  <div className="flex gap-2 pt-3 border-t border-gray-100">
+                    {status === "pending" && (
+                      <>
+                        <button
+                          onClick={() => approveMutation.mutate(owner.id)}
+                          disabled={isActionPending}
+                          className="flex-1 py-2 rounded-lg text-xs font-medium bg-green-600 text-white disabled:opacity-50"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => banMutation.mutate(owner.id)}
+                          disabled={isActionPending}
+                          className="flex-1 py-2 rounded-lg text-xs font-medium bg-red-600 text-white disabled:opacity-50"
+                        >
+                          Ban
+                        </button>
+                      </>
+                    )}
+                    {status === "approved" && (
+                      <button
+                        onClick={() => banMutation.mutate(owner.id)}
+                        disabled={isActionPending}
+                        className="flex-1 py-2 rounded-lg text-xs font-medium border border-red-300 text-red-600 disabled:opacity-50"
+                      >
+                        Ban
+                      </button>
+                    )}
+                    {status === "banned" && (
+                      <button
+                        onClick={() => unbanMutation.mutate(owner.id)}
+                        disabled={isActionPending}
+                        className="flex-1 py-2 rounded-lg text-xs font-medium bg-green-600 text-white disabled:opacity-50"
+                      >
+                        Unban
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );
