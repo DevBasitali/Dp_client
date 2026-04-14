@@ -5,7 +5,7 @@ import { useBranches, useDeleteBranch, Branch } from "@/hooks/useBranches";
 import BranchForm from "@/components/branches/BranchForm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Plus, Loader2, Store } from "lucide-react";
+import { Edit, Trash2, Plus, Store } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default function BranchesPage() {
@@ -53,8 +53,15 @@ export default function BranchesPage() {
       <Card className="shadow-sm border-0 overflow-hidden">
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="flex justify-center items-center h-48">
-              <Loader2 className="w-8 h-8 animate-spin text-[#1B2A4A]" />
+            <div className="divide-y">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4 px-4 py-3 animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-1/3" />
+                  <div className="h-4 bg-gray-200 rounded w-1/4" />
+                  <div className="h-4 bg-gray-200 rounded w-16" />
+                  <div className="h-4 bg-gray-200 rounded w-20 ml-auto" />
+                </div>
+              ))}
             </div>
           ) : isError ? (
             <div className="flex justify-center items-center h-48 text-red-500">

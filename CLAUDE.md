@@ -28,7 +28,9 @@ client/
 ## API
 Base URL: NEXT_PUBLIC_API_URL from .env
 All requests need: Authorization: Bearer <token>
-Token stored in: localStorage key 'dp_token'
+Token managed by Zustand store (dp-auth-storage)
+  Accessed via useAuthStore() hook
+  Axios interceptor attaches it automatically
 On 401: clear token + redirect to /login
 
 ## Auth

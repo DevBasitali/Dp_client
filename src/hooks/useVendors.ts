@@ -39,6 +39,7 @@ export const useVendors = () => {
       const { data } = await api.get('/vendors');
       return (data.data || []) as Vendor[];
     },
+    staleTime: 10 * 60 * 1000,
   });
 };
 
@@ -104,6 +105,7 @@ export const useVendorLedger = (vendorId: string) => {
       return data.data as VendorLedger;
     },
     enabled: !!vendorId,
+    staleTime: 2 * 60 * 1000,
   });
 };
 

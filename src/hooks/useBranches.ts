@@ -17,6 +17,7 @@ export const useBranches = () => {
       const { data } = await api.get('/branches');
       return (data.data || []) as Branch[];
     },
+    staleTime: 10 * 60 * 1000,
   });
 };
 

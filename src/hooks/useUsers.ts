@@ -21,6 +21,7 @@ export const useUsers = (role?: string) => {
       const { data } = await api.get(`/users${qs}`);
       return (data.data || []) as SystemUser[];
     },
+    staleTime: 10 * 60 * 1000,
   });
 };
 

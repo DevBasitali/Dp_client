@@ -116,7 +116,7 @@ export default function VendorsPage() {
   );
 
   return (
-    <div className="space-y-6 lg:p-4">
+    <div className="space-y-6 lg:p-4 pb-24">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
         <div>
           <h1 className="text-2xl font-bold text-[#1A1A2E] flex items-center">
@@ -148,8 +148,15 @@ export default function VendorsPage() {
       <Card className="shadow-sm border-0 overflow-hidden">
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="flex justify-center items-center h-48">
-              <Loader2 className="w-8 h-8 animate-spin text-[#1B2A4A]" />
+            <div className="divide-y">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4 px-4 py-3 animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-1/4" />
+                  <div className="h-4 bg-gray-200 rounded w-1/5" />
+                  <div className="h-4 bg-gray-200 rounded w-16" />
+                  <div className="h-4 bg-gray-200 rounded w-24 ml-auto" />
+                </div>
+              ))}
             </div>
           ) : isError ? (
             <div className="flex justify-center items-center h-48 text-red-500">
@@ -161,90 +168,110 @@ export default function VendorsPage() {
               <p>No vendors found.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-gray-50">
-                  <TableRow>
-                    <TableHead className="font-semibold text-gray-700">Vendor</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Category</TableHead>
-                    <TableHead className="font-semibold text-gray-700">WhatsApp</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Linked Branches</TableHead>
-                    <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredVendors?.map((vendor) => (
-                    <TableRow key={vendor.id} className="hover:bg-slate-50 transition-colors">
-                      <TableCell className="font-medium text-[#1A1A2E]">{vendor.name}</TableCell>
-                      <TableCell className="text-gray-600">{vendor.category || "General"}</TableCell>
-                      <TableCell className="text-gray-600 font-mono text-sm">{vendor.whatsapp_number}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {vendor.branch_links?.length ? (
-                             vendor.branch_links.map((link) => (
-                               <Badge key={link.branch_id} variant="secondary" className="bg-slate-100 text-[#1B2A4A] font-medium border-slate-200">
-                                 {link.branch?.name || "Branch"}
-                               </Badge>
-                             ))
-                          ) : (
-                            <span className="text-gray-400 text-xs">Unlinked</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                           <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleOpenRecordModal(vendor)}
-                            className="h-8 shadow-sm text-[#F0A500] border-[#F0A500]/30 hover:bg-amber-50"
-                            title="Record Inventory"
-                          >
-                            <ClipboardList className="w-4 h-4 mr-1" />
-                            <span className="text-xs font-medium">Record Inventory</span>
-                          </Button>
-
-                           <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleViewLedger(vendor.id)}
-                            className="h-8 shadow-sm text-[#1B2A4A] border-[#1B2A4A]/20"
-                            title="View Ledger"
-                          >
-                            <Eye className="w-4 h-4" />
-                            <span className="sr-only">View Ledger</span>
-                          </Button>
-
-                          {isOwner && (
-                            <>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleEdit(vendor)}
-                                className="h-8 shadow-sm"
-                                title="Edit Vendor"
-                              >
-                                <Edit className="w-4 h-4 text-gray-600" />
-                              </Button>
-                              <Button 
-                                variant="destructive" 
-                                size="sm"
-                                onClick={() => handleDelete(vendor.id)}
-                                className="h-8 shadow-sm bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border border-red-100"
-                                disabled={deleteMutation.isPending}
-                                title="Delete Vendor"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
+            <>
+              {/* Desktop table */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-gray-50">
+                    <TableRow>
+                      <TableHead className="font-semibold text-gray-700">Vendor</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Category</TableHead>
+                      <TableHead className="font-semibold text-gray-700">WhatsApp</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Linked Branches</TableHead>
+                      <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredVendors?.map((vendor) => (
+                      <TableRow key={vendor.id} className="hover:bg-slate-50 transition-colors">
+                        <TableCell className="font-medium text-[#1A1A2E]">{vendor.name}</TableCell>
+                        <TableCell className="text-gray-600">{vendor.category || "General"}</TableCell>
+                        <TableCell className="text-gray-600 font-mono text-sm">{vendor.whatsapp_number}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {vendor.branch_links?.length ? (
+                              vendor.branch_links.map((link) => (
+                                <Badge key={link.branch_id} variant="secondary" className="bg-slate-100 text-[#1B2A4A] font-medium border-slate-200">
+                                  {link.branch?.name || "Branch"}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-gray-400 text-xs">Unlinked</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button variant="outline" size="sm" onClick={() => handleOpenRecordModal(vendor)} className="h-8 shadow-sm text-[#F0A500] border-[#F0A500]/30 hover:bg-amber-50">
+                              <ClipboardList className="w-4 h-4 mr-1" />
+                              <span className="text-xs font-medium">Record Inventory</span>
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => handleViewLedger(vendor.id)} className="h-8 shadow-sm text-[#1B2A4A] border-[#1B2A4A]/20">
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            {isOwner && (
+                              <>
+                                <Button variant="outline" size="sm" onClick={() => handleEdit(vendor)} className="h-8 shadow-sm">
+                                  <Edit className="w-4 h-4 text-gray-600" />
+                                </Button>
+                                <Button variant="destructive" size="sm" onClick={() => handleDelete(vendor.id)} className="h-8 shadow-sm bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border border-red-100" disabled={deleteMutation.isPending}>
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="block md:hidden divide-y">
+                {filteredVendors?.map((vendor) => (
+                  <div key={vendor.id} className="p-4 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-semibold text-[#1A1A2E]">{vendor.name}</h3>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {vendor.category || "General"} · {vendor.whatsapp_number}
+                        </p>
+                      </div>
+                    </div>
+                    {vendor.branch_links?.length ? (
+                      <div className="flex flex-wrap gap-1">
+                        {vendor.branch_links.map((link) => (
+                          <Badge key={link.branch_id} variant="secondary" className="bg-slate-100 text-[#1B2A4A] font-medium border-slate-200 text-xs">
+                            {link.branch?.name || "Branch"}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-xs">No linked branches</span>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleOpenRecordModal(vendor)} className="h-8 text-[#F0A500] border-[#F0A500]/30 hover:bg-amber-50 gap-1">
+                        <ClipboardList className="w-3.5 h-3.5" /> Record
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleViewLedger(vendor.id)} className="h-8 text-[#1B2A4A] border-[#1B2A4A]/20 gap-1">
+                        <Eye className="w-3.5 h-3.5" /> Ledger
+                      </Button>
+                      {isOwner && (
+                        <>
+                          <Button variant="outline" size="sm" onClick={() => handleEdit(vendor)} className="h-8 gap-1">
+                            <Edit className="w-3.5 h-3.5 text-gray-600" /> Edit
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleDelete(vendor.id)} className="h-8 gap-1 text-red-500 border-red-200 hover:bg-red-50" disabled={deleteMutation.isPending}>
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

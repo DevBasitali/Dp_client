@@ -45,6 +45,7 @@ export const useDailyClosings = (filters?: { branchId?: string; month?: number; 
       const { data } = await api.get(`/daily-closings?${params.toString()}`);
       return (data.data || []) as DailyClosing[];
     },
+    staleTime: 2 * 60 * 1000,
   });
 };
 

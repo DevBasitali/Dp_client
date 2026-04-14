@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
+import { api } from "@/lib/api";
 import { LayoutDashboard, Users, UserCog, Store, Package, LogOut, X, ClipboardList, Wallet, CalendarCheck, BarChart3, Settings as SettingsIcon } from "lucide-react";
 
 interface SidebarProps {
@@ -13,6 +15,25 @@ interface SidebarProps {
 export default function Sidebar({ isMobileOpen, closeMobile }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
+  const queryClient = useQueryClient();
+
+  const prefetchMap: Record<string, () => void> = {
+    '/dashboard': () => queryClient.prefetchQuery({
+      queryKey: ['dashboard-owner'],
+      queryFn: () => api.get('/dashboard/owner').then(r => r.data.data),
+      staleTime: 60 * 1000,
+    }),
+    '/vendors': () => queryClient.prefetchQuery({
+      queryKey: ['vendors'],
+      queryFn: () => api.get('/vendors').then(r => r.data.data || []),
+      staleTime: 10 * 60 * 1000,
+    }),
+    '/daily-closings': () => queryClient.prefetchQuery({
+      queryKey: ['daily-closings', {}],
+      queryFn: () => api.get('/daily-closings').then(r => r.data.data || []),
+      staleTime: 2 * 60 * 1000,
+    }),
+  };
 
   const handleLogout = () => {
     logout();
@@ -52,6 +73,7 @@ export default function Sidebar({ isMobileOpen, closeMobile }: SidebarProps) {
               key={link.name}
               href={link.href}
               onClick={closeMobile}
+              onMouseEnter={() => prefetchMap[link.href]?.()}
               className={`flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-lg transition-colors ${isActive ? "bg-slate-800 text-[#F0A500]" : "hover:bg-slate-800 text-slate-300"
                 }`}
             >

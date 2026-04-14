@@ -71,6 +71,7 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
 
   const [selectedBranch, setSelectedBranch] = useState<string>('all');
 
+  const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [showInventoryModal, setShowInventoryModal] = useState(false);
   const [invAmount, setInvAmount] = useState("");
   const [invDescription, setInvDescription] = useState("");
@@ -163,7 +164,7 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
   }
 
   return (
-    <div className="space-y-6 lg:p-4">
+    <div className="space-y-6 lg:p-4 pb-24">
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center space-x-4">
@@ -285,60 +286,75 @@ export default function VendorLedgerPage({ params }: { params: Promise<{ id: str
                   <TableRow>
                     <TableHead className="w-[110px]">Date</TableHead>
                     <TableHead className="w-[110px]">Type</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="w-[120px]">Branch</TableHead>
+                    <TableHead className="hidden md:table-cell">Description</TableHead>
+                    <TableHead className="hidden md:table-cell w-[120px]">Branch</TableHead>
                     <TableHead className="w-[130px] text-right">Amount</TableHead>
-                    <TableHead className="w-[120px]">Source</TableHead>
+                    <TableHead className="hidden md:table-cell w-[120px]">Source</TableHead>
                     <TableHead className="w-[140px] text-right">Balance</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredLedger.map((row, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="text-xs text-gray-500 whitespace-nowrap">
-                        {format(new Date(row.date), "dd MMM yyyy")}
-                      </TableCell>
-                      <TableCell>
-                        {row.type === "INVENTORY" ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Inventory
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                            Payment
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm">{row.description}</TableCell>
-                      <TableCell className="text-xs text-gray-500">{row.branch?.name ?? "—"}</TableCell>
-                      <TableCell className="text-right font-mono text-sm">
-                        {row.type === "INVENTORY" ? (
-                          <span className="text-gray-800">{formatMoney(row.amount)}</span>
-                        ) : (
-                          <span className="text-red-600">−{formatMoney(row.amount)}</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {row.type === "PAYMENT" && row.source ? (
-                          row.source === "SALE" ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
-                              FROM SALE
+                    <>
+                      <TableRow
+                        key={`row-${i}`}
+                        className="md:cursor-default cursor-pointer hover:bg-slate-50"
+                        onClick={() => setExpandedRow(expandedRow === i ? null : i)}
+                      >
+                        <TableCell className="text-xs text-gray-500 whitespace-nowrap">
+                          {format(new Date(row.date), "dd MMM yyyy")}
+                        </TableCell>
+                        <TableCell>
+                          {row.type === "INVENTORY" ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              Inventory
                             </span>
                           ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                              FROM CAL
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                              Payment
                             </span>
-                          )
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-sm font-semibold">
-                        <span className={row.runningBalance > 0 ? "text-red-600" : "text-green-600"}>
-                          {formatMoney(row.runningBalance)}
-                        </span>
-                      </TableCell>
-                    </TableRow>
+                          )}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-sm">{row.description}</TableCell>
+                        <TableCell className="hidden md:table-cell text-xs text-gray-500">{row.branch?.name ?? "—"}</TableCell>
+                        <TableCell className="text-right font-mono text-sm">
+                          {row.type === "INVENTORY" ? (
+                            <span className="text-gray-800">{formatMoney(row.amount)}</span>
+                          ) : (
+                            <span className="text-red-600">−{formatMoney(row.amount)}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {row.type === "PAYMENT" && row.source ? (
+                            row.source === "SALE" ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">FROM SALE</span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">FROM CAL</span>
+                            )
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-sm font-semibold">
+                          <span className={row.runningBalance > 0 ? "text-red-600" : "text-green-600"}>
+                            {formatMoney(row.runningBalance)}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                      {expandedRow === i && (
+                        <TableRow key={`expand-${i}`} className="md:hidden bg-gray-50">
+                          <TableCell colSpan={4} className="py-2 px-4">
+                            <div className="text-xs space-y-1 text-gray-600">
+                              <div><span className="text-gray-400 mr-1">Description:</span>{row.description}</div>
+                              <div><span className="text-gray-400 mr-1">Branch:</span>{row.branch?.name || "—"}</div>
+                              {row.type === "PAYMENT" && row.source && (
+                                <div><span className="text-gray-400 mr-1">Source:</span>{row.source === "SALE" ? "From Sale" : "From Cal"}</div>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
                   ))}
                 </TableBody>
               </Table>

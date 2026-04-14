@@ -59,7 +59,7 @@ export default function DailyClosingsPage() {
     `Rs. ${Number(amount).toLocaleString("en-PK")}`;
 
   return (
-    <div className="space-y-6 lg:p-4">
+    <div className="space-y-6 lg:p-4 pb-24">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
         <div>
           <h1 className="text-2xl font-bold text-[#1A1A2E] flex items-center">
@@ -81,8 +81,15 @@ export default function DailyClosingsPage() {
       <Card className="shadow-sm border-0 overflow-hidden">
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="flex justify-center items-center h-48">
-              <Loader2 className="w-8 h-8 animate-spin text-[#1B2A4A]" />
+            <div className="divide-y">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4 px-4 py-3 animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-24" />
+                  <div className="h-4 bg-gray-200 rounded w-1/4" />
+                  <div className="h-4 bg-gray-200 rounded w-1/5" />
+                  <div className="h-4 bg-gray-200 rounded w-20 ml-auto" />
+                </div>
+              ))}
             </div>
           ) : isError ? (
             <div className="flex justify-center items-center h-48 text-red-500">
@@ -99,77 +106,120 @@ export default function DailyClosingsPage() {
               </Link>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-gray-50">
-                  <TableRow>
-                    <TableHead className="font-semibold text-gray-700">Date</TableHead>
-                    {!isManager && <TableHead className="font-semibold text-gray-700">Branch</TableHead>}
-                    <TableHead className="font-semibold text-gray-700 text-right">Cash</TableHead>
-                    <TableHead className="font-semibold text-gray-700 text-right">EasyPaisa</TableHead>
-                    <TableHead className="font-semibold text-gray-700 text-right text-[#1B2A4A]">Register</TableHead>
-                    <TableHead className="font-semibold text-gray-700 text-right text-green-700">Physical to Box</TableHead>
-                    <TableHead className="font-semibold text-gray-700 text-right w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {closings?.map((closing) => (
-                    <TableRow key={closing.id} className="hover:bg-slate-50 transition-colors">
-                      <TableCell className="font-medium text-[#1A1A2E]">
-                        {format(new Date(closing.closingDate), "dd MMM yyyy")}
-                      </TableCell>
-                      {!isManager && (
-                        <TableCell className="text-gray-600">
-                          {closing.branch?.name || "—"}
-                        </TableCell>
-                      )}
-                      <TableCell className="text-right text-gray-600 font-mono text-sm">
-                        {formatMoney(Number(closing.cashSales))}
-                      </TableCell>
-                      <TableCell className="text-right text-gray-600 font-mono text-sm">
-                        {formatMoney(Number(closing.easypaisaSales))}
-                      </TableCell>
-                      <TableCell className="text-right font-bold text-[#1B2A4A] font-mono text-sm tracking-tight">
-                        {formatMoney(Number(closing.registerTotal))}
-                      </TableCell>
-                      <TableCell className="text-right font-bold text-green-600 font-mono text-sm tracking-tight">
-                        {formatMoney(Number(closing.physicalToBox))}
-                      </TableCell>
-                      <TableCell className="text-right p-2">
-                        <div className="flex justify-end gap-1">
-                          {(!isManager || format(new Date(closing.closingDate), "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd")) ? (
-                            <Link href={`/daily-closings/${closing.id}/edit`}>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <Pencil className="w-4 h-4 text-gray-500 hover:text-[#1B2A4A]" />
-                              </Button>
-                            </Link>
-                          ) : (
-                            <Button variant="ghost" size="icon" disabled className="h-8 w-8">
-                              <Pencil className="w-4 h-4 text-gray-300" />
-                            </Button>
-                          )}
-                          {(isOwner || (isManager && closing.enteredBy === user?.userId)) && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50"
-                              onClick={() =>
-                                setDeleteTarget({
-                                  id: closing.id,
-                                  date: format(new Date(closing.closingDate), "dd MMM yyyy"),
-                                })
-                              }
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
+            <>
+              {/* Desktop table */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-gray-50">
+                    <TableRow>
+                      <TableHead className="font-semibold text-gray-700">Date</TableHead>
+                      {!isManager && <TableHead className="font-semibold text-gray-700">Branch</TableHead>}
+                      <TableHead className="font-semibold text-gray-700 text-right">Cash</TableHead>
+                      <TableHead className="font-semibold text-gray-700 text-right">EasyPaisa</TableHead>
+                      <TableHead className="font-semibold text-gray-700 text-right text-[#1B2A4A]">Register</TableHead>
+                      <TableHead className="font-semibold text-gray-700 text-right text-green-700">Physical to Box</TableHead>
+                      <TableHead className="font-semibold text-gray-700 text-right w-[50px]"></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {closings?.map((closing) => (
+                      <TableRow key={closing.id} className="hover:bg-slate-50 transition-colors">
+                        <TableCell className="font-medium text-[#1A1A2E]">
+                          {format(new Date(closing.closingDate), "dd MMM yyyy")}
+                        </TableCell>
+                        {!isManager && (
+                          <TableCell className="text-gray-600">{closing.branch?.name || "—"}</TableCell>
+                        )}
+                        <TableCell className="text-right text-gray-600 font-mono text-sm">{formatMoney(Number(closing.cashSales))}</TableCell>
+                        <TableCell className="text-right text-gray-600 font-mono text-sm">{formatMoney(Number(closing.easypaisaSales))}</TableCell>
+                        <TableCell className="text-right font-bold text-[#1B2A4A] font-mono text-sm tracking-tight">{formatMoney(Number(closing.registerTotal))}</TableCell>
+                        <TableCell className="text-right font-bold text-green-600 font-mono text-sm tracking-tight">{formatMoney(Number(closing.physicalToBox))}</TableCell>
+                        <TableCell className="text-right p-2">
+                          <div className="flex justify-end gap-1">
+                            {(!isManager || format(new Date(closing.closingDate), "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd")) ? (
+                              <Link href={`/daily-closings/${closing.id}/edit`}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <Pencil className="w-4 h-4 text-gray-500 hover:text-[#1B2A4A]" />
+                                </Button>
+                              </Link>
+                            ) : (
+                              <Button variant="ghost" size="icon" disabled className="h-8 w-8">
+                                <Pencil className="w-4 h-4 text-gray-300" />
+                              </Button>
+                            )}
+                            {(isOwner || (isManager && closing.enteredBy === user?.userId)) && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50"
+                                onClick={() => setDeleteTarget({ id: closing.id, date: format(new Date(closing.closingDate), "dd MMM yyyy") })}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="block md:hidden divide-y">
+                {closings?.map((closing) => (
+                  <div key={closing.id} className="p-4 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold text-[#1A1A2E]">
+                        {format(new Date(closing.closingDate), "dd MMM yyyy")}
+                      </span>
+                      {!isManager && (
+                        <span className="text-sm text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                          {closing.branch?.name || "—"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                      <div>
+                        <p className="text-gray-400 text-xs">Cash</p>
+                        <p className="font-medium">{formatMoney(Number(closing.cashSales))}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400 text-xs">EasyPaisa</p>
+                        <p className="font-medium">{formatMoney(Number(closing.easypaisaSales))}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400 text-xs">Register</p>
+                        <p className="font-medium text-[#1B2A4A]">{formatMoney(Number(closing.registerTotal))}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400 text-xs">Physical to Box</p>
+                        <p className="font-medium text-green-600">{formatMoney(Number(closing.physicalToBox))}</p>
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-1">
+                      {(!isManager || format(new Date(closing.closingDate), "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd")) ? (
+                        <Link href={`/daily-closings/${closing.id}/edit`}>
+                          <Button variant="outline" size="sm" className="h-8 gap-1">
+                            <Pencil className="w-3.5 h-3.5" /> Edit
+                          </Button>
+                        </Link>
+                      ) : null}
+                      {(isOwner || (isManager && closing.enteredBy === user?.userId)) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 gap-1 text-red-500 border-red-200 hover:bg-red-50"
+                          onClick={() => setDeleteTarget({ id: closing.id, date: format(new Date(closing.closingDate), "dd MMM yyyy") })}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Delete
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
