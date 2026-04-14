@@ -3,28 +3,47 @@ import { api } from '@/lib/api';
 
 export interface MonthlyClosing {
   id: string;
-  branch_id: string;
-  closed_by: string;
+  branchId: string;
+  closedBy: string;
   month: number;
   year: number;
-  total_cash_sales: number;
-  total_easypaisa_sales: number;
-  total_sales: number;
-  total_expenses: number;
-  net_bachat: number;
-  days_recorded: number;
-  is_locked: boolean;
-  closed_at: string;
+  totalCashSales: number;
+  totalEasypaisaSales: number;
+  totalSales: number;
+  totalExpenses: number;
+  netBachat: number;
+  daysRecorded: number;
+  isLocked: boolean;
+  closedAt: string;
   branch?: { name: string };
-  user?: { name: string };
 }
 
-export const useMonthlyClosings = () => {
+export interface BranchMonthStatus {
+  branchId: string;
+  branchName?: string;
+  status: 'CLOSED' | 'PENDING';
+  dailyCount: number;
+  bachat: number | null;
+  totalSales?: number | null;
+}
+
+export interface CurrentMonthData {
+  month: number;
+  year: number;
+  branches: BranchMonthStatus[];
+}
+
+export interface MonthlyClosingsResponse {
+  closings: MonthlyClosing[];
+  currentMonth: CurrentMonthData;
+}
+
+export const useMonthlyClosings = (params?: { month?: number; year?: number }) => {
   return useQuery({
-    queryKey: ['monthly-closings'],
+    queryKey: ['monthly-closings', params],
     queryFn: async () => {
-      const { data } = await api.get('/monthly-closings');
-      return (data.data || []) as MonthlyClosing[];
+      const { data } = await api.get('/monthly-closings', { params });
+      return data.data as MonthlyClosingsResponse;
     },
   });
 };
@@ -42,9 +61,9 @@ export const useMonthlyClosing = (id: string, options = { enabled: true }) => {
 
 export const useCloseMonth = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async (monthData: { branch_id: string, month: number, year: number }) => {
+    mutationFn: async (monthData: { month: number; year: number; branchId?: string }) => {
       const { data } = await api.post('/monthly-closings', monthData);
       return data;
     },

@@ -1,44 +1,21 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 
-export interface AuditLogItem {
-  id: string;
-  user_id: string;
-  action: string;
-  entity_type: string;
-  entity_id?: string;
-  description: string;
-  created_at: string;
-  user?: { name: string; role: string };
+export interface VendorOutstanding {
+  vendorId: string;
+  vendorName: string;
+  category: string | null;
+  totalInventory: number;
+  totalPaid: number;
+  outstandingBalance: number;
 }
 
-export interface ItemMarginReport {
-  id: string;
-  name: string;
-  category?: string;
-  vendor?: { name: string };
-  cost_price: number;
-  selling_price: number;
-  margin: number;
-  margin_percent: number;
-}
-
-export const useAuditLog = () => {
+export const useVendorOutstanding = () => {
   return useQuery({
-    queryKey: ['reports', 'audit-log'],
+    queryKey: ['vendor-outstanding'],
     queryFn: async () => {
-      const { data } = await api.get('/reports/audit-log');
-      return (data.data || []) as AuditLogItem[];
-    },
-  });
-};
-
-export const useItemMarginsReport = () => {
-  return useQuery({
-    queryKey: ['reports', 'item-margins'],
-    queryFn: async () => {
-      const { data } = await api.get('/reports/item-margins');
-      return (data.data || []) as ItemMarginReport[];
+      const { data } = await api.get('/vendor-ledger/outstanding');
+      return (data.data || []) as VendorOutstanding[];
     },
   });
 };
