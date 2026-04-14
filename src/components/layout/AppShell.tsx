@@ -77,7 +77,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             )}
             {/* Language Toggle */}
-            <button className="text-sm font-semibold text-gray-500 hover:text-[#1B2A4A]">EN / اردو</button>
+            {/* <button className="text-sm font-semibold text-gray-500 hover:text-[#1B2A4A]">EN / اردو</button> */}
           </div>
         </header>
 
