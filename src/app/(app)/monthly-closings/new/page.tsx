@@ -46,7 +46,7 @@ export default function CloseMonthPage() {
     const confirmMsg = `Are you absolutely sure you want to CLOSE this month? \n\nNo further daily closings can be added or edited for ${month}/${year}.`;
     if (!confirm(confirmMsg)) return;
 
-    closeMutation.mutate({ branch_id: branchId, month, year }, {
+    closeMutation.mutate({ branchId: branchId, month, year }, {
       onSuccess: () => {
         router.push("/monthly-closings");
       },
