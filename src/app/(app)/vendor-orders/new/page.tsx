@@ -108,7 +108,7 @@ export default function PlaceVendorOrderPage() {
   };
 
   return (
-    <div className="space-y-6 lg:p-4 max-w-3xl mx-auto pb-32 md:pb-8">
+    <div className="space-y-6 lg:p-4 max-w-3xl mx-auto pb-36 md:pb-8">
       <div className="flex items-center space-x-4">
         <Link href="/vendor-orders">
           <Button variant="ghost" size="icon" className="h-10 w-10 text-gray-500 hover:text-black">
@@ -260,29 +260,24 @@ export default function PlaceVendorOrderPage() {
         </div>
 
         {/* Fixed bottom bar for Mobile-first pattern */}
-        <div className="fixed bottom-20 left-0 right-0 p-4 bg-white border-t z-10 md:static md:bg-transparent md:border-0 md:p-0 md:bottom-auto">
-          <div className="max-w-3xl mx-auto flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-500 hidden md:inline">
-              Generates PDF and sends via WhatsApp
-            </span>
-            <Button 
-              type="submit" 
-              className="w-full md:w-64 h-14 bg-[#1B2A4A] hover:bg-slate-800 text-white shadow-xl md:shadow-md"
-              disabled={createMutation.isPending}
-            >
-              {createMutation.isPending ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <ClipboardList className="w-5 h-5 mr-2" />
-                  Send Official Order
-                </>
-              )}
-            </Button>
-          </div>
+        <div className="fixed bottom-[72px] left-0 right-0 px-4 py-3 bg-white/95 backdrop-blur-sm border-t border-gray-100 md:relative md:bottom-auto md:px-0 md:py-0 md:bg-transparent md:border-0 md:mt-6 z-40">
+          <Button 
+            type="submit" 
+            className="w-full h-13 bg-[#1B2A4A] text-white rounded-xl font-semibold text-sm active:scale-[0.98] transition-transform disabled:opacity-50 md:w-64"
+            disabled={createMutation.isPending}
+          >
+            {createMutation.isPending ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <ClipboardList className="w-5 h-5 mr-2" />
+                Submit
+              </>
+            )}
+          </Button>
         </div>
       </form>
     </div>

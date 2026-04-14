@@ -44,7 +44,8 @@ const formatMoney = (amount: number) =>
 export default function DailyClosingFormPage() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const isManager = user?.role === "branch_manager";
+  const isOwner = user?.role === "owner";
+  const isBranchManager = user?.role === "branch_manager";
 
   const { data: branches } = useBranches();
   const { data: vendors } = useVendors();
@@ -59,7 +60,7 @@ export default function DailyClosingFormPage() {
   } = useForm<ClosingFormValues>({
     resolver: zodResolver(closingSchema),
     defaultValues: {
-      branchId: isManager ? (user?.branchId ?? "") : "",
+      branchId: isBranchManager ? (user?.branchId ?? "") : "",
       closingDate: format(new Date(), "yyyy-MM-dd"),
       cashSales: 0,
       easypaisaSales: 0,
@@ -91,13 +92,13 @@ export default function DailyClosingFormPage() {
   const physicalToBox = totalSales - saleExpenses;
 
   const onSubmit = (data: ClosingFormValues) => {
-    if (!isManager && !data.branchId) {
+    if (!isBranchManager && !data.branchId) {
       toast.error("Please select a branch.");
       return;
     }
 
     const payload = {
-      branchId: isManager ? (user?.branchId ?? undefined) : data.branchId,
+      branchId: isBranchManager ? (user?.branchId ?? undefined) : data.branchId,
       closingDate: data.closingDate,
       cashSales: data.cashSales,
       easypaisaSales: data.easypaisaSales,
@@ -111,7 +112,7 @@ export default function DailyClosingFormPage() {
     createMutation.mutate(payload, {
       onSuccess: () => {
         toast.success("Daily closing submitted successfully!");
-        router.push(isManager ? "/branch-dashboard" : "/daily-closings");
+        router.push(isBranchManager ? "/branch-dashboard" : "/daily-closings");
       },
       onError: (err: any) => {
         const status = err.response?.status;
@@ -128,10 +129,10 @@ export default function DailyClosingFormPage() {
   };
 
   return (
-    <div className="space-y-6 lg:p-4 max-w-4xl mx-auto pb-28">
+    <div className="space-y-6 lg:p-4 max-w-4xl mx-auto pb-36 md:pb-8">
       {/* Header */}
       <div className="flex items-center space-x-4">
-        <Link href={isManager ? "/branch-dashboard" : "/daily-closings"}>
+        <Link href={isBranchManager ? "/branch-dashboard" : "/daily-closings"}>
           <Button variant="ghost" size="icon" className="h-10 w-10 text-gray-500 hover:text-black">
             <ArrowLeft className="w-6 h-6" />
           </Button>
@@ -152,11 +153,15 @@ export default function DailyClosingFormPage() {
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {!isManager && (
-                <div className="space-y-2">
-                  <Label>Branch <span className="text-red-500">*</span></Label>
+              <div className="space-y-2">
+                <Label>Branch {isOwner && <span className="text-red-500">*</span>}</Label>
+                {isBranchManager ? (
+                  <div className="flex px-3 py-2 h-10 w-full rounded-md border border-slate-200 bg-slate-50 text-sm text-slate-500 items-center">
+                    {branches?.find(b => b.id === user?.branchId)?.name || 'Your Branch'}
+                  </div>
+                ) : (
                   <Select onValueChange={(val: string | null) => val && setValue("branchId", val)}>
-                    <SelectTrigger className={errors.branchId ? "border-red-500" : ""}>
+                    <SelectTrigger className={errors.branchId ? "border-red-500" : "bg-white"}>
                       <SelectValue placeholder="Select branch" />
                     </SelectTrigger>
                     <SelectContent>
@@ -165,8 +170,8 @@ export default function DailyClosingFormPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-              )}
+                )}
+              </div>
 
               <div className="space-y-2">
                 <Label>Closing Date <span className="text-red-500">*</span></Label>
@@ -228,14 +233,28 @@ export default function DailyClosingFormPage() {
               {fields.map((field, index) => (
                 <div
                   key={field.id}
-                  className="rounded-lg border border-slate-100 bg-slate-50/50 p-3 space-y-2"
+                  className="rounded-xl md:rounded-lg border border-gray-200 md:border-slate-100 bg-gray-50 md:bg-slate-50/50 p-3"
                 >
-                  {/* Main row: Description | Amount | Source | Remove */}
-                  <div className="grid grid-cols-[1fr_130px_120px_36px] gap-2 items-start">
-                    {/* Description */}
-                    <div>
+                  {/* Mobile-only header: label + remove */}
+                  <div className="flex justify-between items-center mb-2 md:hidden">
+                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                      Expense {index + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => remove(index)}
+                      className="text-red-400 text-xs hover:text-red-600"
+                    >
+                      Remove
+                    </button>
+                  </div>
+
+                  {/* Inputs row: flex-wrap on mobile → stacked; grid on desktop */}
+                  <div className="flex flex-wrap gap-2 items-start mb-2">
+                    {/* Description: full width on mobile, flex-1 on desktop */}
+                    <div className="w-full md:w-auto md:flex-1">
                       <Input
-                        placeholder="e.g. Workers lunch"
+                        placeholder="e.g. Workers lunch, Vendor payment"
                         {...register(`expenses.${index}.description`)}
                         className={`bg-white ${errors.expenses?.[index]?.description ? "border-red-500" : ""}`}
                       />
@@ -246,12 +265,12 @@ export default function DailyClosingFormPage() {
                       )}
                     </div>
 
-                    {/* Amount */}
-                    <div>
+                    {/* Amount: flex-1 on mobile, fixed 130px on desktop */}
+                    <div className="flex-1 md:flex-none md:w-[130px]">
                       <Input
                         type="number"
                         min="0"
-                        placeholder="Amount"
+                        placeholder="Amount PKR"
                         {...register(`expenses.${index}.amount`, { valueAsNumber: true })}
                         className={`font-mono bg-white ${errors.expenses?.[index]?.amount ? "border-red-500" : ""}`}
                       />
@@ -262,8 +281,8 @@ export default function DailyClosingFormPage() {
                       )}
                     </div>
 
-                    {/* Source */}
-                    <div>
+                    {/* Source: fixed width on both */}
+                    <div className="w-28 md:w-[120px]">
                       <Controller
                         control={control}
                         name={`expenses.${index}.source`}
@@ -288,19 +307,19 @@ export default function DailyClosingFormPage() {
                       )}
                     </div>
 
-                    {/* Remove */}
+                    {/* Remove button: desktop only */}
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-10 w-9 text-red-400 hover:text-red-600 hover:bg-red-50 mt-0"
+                      className="hidden md:flex h-10 w-9 text-red-400 hover:text-red-600 hover:bg-red-50"
                       onClick={() => remove(index)}
                     >
                       <X className="w-4 h-4" />
                     </Button>
                   </div>
 
-                  {/* Vendor row (optional) */}
+                  {/* Vendor row */}
                   <div className="space-y-1">
                     <Controller
                       control={control}
@@ -330,16 +349,14 @@ export default function DailyClosingFormPage() {
               ))}
             </div>
 
-            <Button
+            <button
               type="button"
-              variant="outline"
-              size="sm"
-              className="border-dashed border-[#1B2A4A] text-[#1B2A4A] hover:bg-slate-50"
               onClick={() => append({ description: "", amount: 0, source: "SALE", vendorId: null })}
+              className="w-full md:w-auto border-2 md:border border-dashed border-gray-300 md:border-[#1B2A4A] rounded-xl md:rounded-md py-3 md:py-1.5 md:px-3 text-gray-400 md:text-[#1B2A4A] text-sm font-medium flex items-center justify-center gap-2 hover:border-[#1B2A4A] hover:text-[#1B2A4A] md:hover:bg-slate-50 transition-colors"
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4" />
               Add Expense
-            </Button>
+            </button>
           </CardContent>
         </Card>
 
@@ -408,23 +425,18 @@ export default function DailyClosingFormPage() {
         </Card>
 
         {/* Submit bar */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t z-10 md:static md:bg-transparent md:border-0 md:p-0">
-          <div className="max-w-4xl mx-auto flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-500 hidden md:inline">
-              Double check values before submitting
-            </span>
-            <Button
-              type="submit"
-              className="w-full md:w-64 h-14 bg-[#1B2A4A] hover:bg-slate-800 text-white shadow-xl md:shadow-md"
-              disabled={createMutation.isPending}
-            >
-              {createMutation.isPending ? (
-                <><Loader2 className="w-5 h-5 mr-2 animate-spin" />Saving...</>
-              ) : (
-                <><Save className="w-5 h-5 mr-2" />Submit Daily Closing</>
-              )}
-            </Button>
-          </div>
+        <div className="fixed bottom-[72px] left-0 right-0 px-4 py-3 bg-white/95 backdrop-blur-sm border-t border-gray-100 md:relative md:bottom-auto md:px-0 md:py-0 md:bg-transparent md:border-0 md:mt-6 z-40">
+          <Button
+            type="submit"
+            className="w-full h-13 bg-[#1B2A4A] text-white rounded-xl font-semibold text-sm active:scale-[0.98] transition-transform disabled:opacity-50 md:w-64"
+            disabled={createMutation.isPending}
+          >
+            {createMutation.isPending ? (
+              <><Loader2 className="w-5 h-5 mr-2 animate-spin" />Submitting...</>
+            ) : (
+              <><Save className="w-5 h-5 mr-2" />Submit</>
+            )}
+          </Button>
         </div>
       </form>
     </div>
