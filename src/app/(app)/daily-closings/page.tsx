@@ -33,7 +33,8 @@ export default function DailyClosingsPage() {
   const ITEMS_PER_PAGE = 10;
 
   const filters = isManager ? { branchId: user?.branchId ?? undefined } : {};
-  const { data: closings, isLoading, isError } = useDailyClosings(filters);
+  const { data, isLoading, isError } = useDailyClosings(filters);
+  const closings = data ?? [];
 
   useEffect(() => { setCurrentPage(1); }, []);
 
@@ -100,7 +101,7 @@ export default function DailyClosingsPage() {
             <div className="flex justify-center items-center h-48 text-red-500">
               Failed to load daily closings. Please try again.
             </div>
-          ) : closings?.length === 0 ? (
+          ) : closings.length === 0 ? (
             <div className="flex flex-col justify-center items-center h-48 text-gray-500">
               <Wallet className="w-12 h-12 text-gray-200 mb-2" />
               <p>No closing records found.</p>
@@ -114,7 +115,7 @@ export default function DailyClosingsPage() {
             <>
               {/* Result count */}
               <p className="text-sm text-gray-500 px-4 pt-3">
-                Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, closings!.length)}–{Math.min(currentPage * ITEMS_PER_PAGE, closings!.length)} of {closings!.length}
+                Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, closings.length)}–{Math.min(currentPage * ITEMS_PER_PAGE, closings.length)} of {closings.length}
               </p>
 
               {/* Desktop table */}
@@ -132,7 +133,7 @@ export default function DailyClosingsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {closings?.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((closing) => (
+                    {closings.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((closing) => (
                       <TableRow key={closing.id} className="hover:bg-slate-50 transition-colors">
                         <TableCell className="font-medium text-[#1A1A2E]">
                           {format(new Date(closing.closingDate), "dd MMM yyyy")}
@@ -177,7 +178,7 @@ export default function DailyClosingsPage() {
 
               {/* Mobile cards */}
               <div className="block md:hidden divide-y">
-                {closings?.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((closing) => (
+                {closings.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((closing) => (
                   <div key={closing.id} className="p-4 space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="font-semibold text-[#1A1A2E]">
@@ -234,7 +235,7 @@ export default function DailyClosingsPage() {
               <div className="px-4 pb-4">
                 <PaginationBar
                   currentPage={currentPage}
-                  totalItems={closings?.length ?? 0}
+                  totalItems={closings.length}
                   itemsPerPage={ITEMS_PER_PAGE}
                   onPageChange={setCurrentPage}
                 />

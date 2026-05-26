@@ -47,7 +47,8 @@ export default function VendorOrdersPage() {
   
   // If manager, we might need to filter by their branch, 
   // but let's assume backend scopes it or we request it explicitly
-  const { data: orders, isLoading, isError } = useVendorOrders(isManager ? user.branchId ?? undefined : undefined);
+  const { data, isLoading, isError } = useVendorOrders(isManager ? user.branchId ?? undefined : undefined);
+  const orders = data ?? [];
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { setCurrentPage(1); }, []);
@@ -82,7 +83,7 @@ export default function VendorOrdersPage() {
             <div className="flex justify-center items-center h-48 text-red-500">
               Failed to load vendor orders. Please try again.
             </div>
-          ) : orders?.length === 0 ? (
+          ) : orders.length === 0 ? (
             <div className="flex flex-col justify-center items-center h-48 text-gray-500">
               <ClipboardList className="w-12 h-12 text-gray-200 mb-2" />
               <p>No vendor orders found.</p>
@@ -96,7 +97,7 @@ export default function VendorOrdersPage() {
             <>
               {/* Result count */}
               <p className="text-sm text-gray-500 px-4 pt-3">
-                Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, orders!.length)}–{Math.min(currentPage * ITEMS_PER_PAGE, orders!.length)} of {orders!.length}
+                Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, orders.length)}–{Math.min(currentPage * ITEMS_PER_PAGE, orders.length)} of {orders.length}
               </p>
 
               {/* Desktop table */}
@@ -113,7 +114,7 @@ export default function VendorOrdersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {orders?.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((order) => (
+                    {orders.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((order) => (
                       <TableRow key={order.id} className="hover:bg-slate-50 transition-colors">
                         <TableCell className="font-medium text-[#1A1A2E]">
                           {format(new Date(order.created_at), "dd MMM yyyy")}
@@ -177,7 +178,7 @@ export default function VendorOrdersPage() {
 
               {/* Mobile cards */}
               <div className="block md:hidden space-y-3 p-4">
-                {orders?.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((order) => {
+                {orders.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((order) => {
                   const canEdit = !isManager || (new Date().getTime() - new Date(order.created_at).getTime()) < 5 * 60 * 60 * 1000;
                   return (
                     <div key={order.id} className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
@@ -252,7 +253,7 @@ export default function VendorOrdersPage() {
               <div className="px-4 pb-4">
                 <PaginationBar
                   currentPage={currentPage}
-                  totalItems={orders?.length ?? 0}
+                  totalItems={orders.length}
                   itemsPerPage={ITEMS_PER_PAGE}
                   onPageChange={setCurrentPage}
                 />
