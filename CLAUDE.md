@@ -1,6 +1,3 @@
-Replace the contents of client/CLAUDE.md completely
-with this:
-
 # CLAUDE.md — Dollar Point Frontend
 
 ## Stack
@@ -20,7 +17,7 @@ client/
 │       ├── branch-dashboard/ ← branch manager screens
 │       ├── vendor-portal/   ← vendor screens
 │       ├── super-admin/     ← super admin screens
-│       ├── login/           ← regular login
+│       ├── login/           ← unified login for all roles
 │       └── signup/          ← owner signup
 ├── components/              ← shared UI components
 └── lib/                     ← api helpers, utilities
@@ -28,24 +25,18 @@ client/
 ## API
 Base URL: NEXT_PUBLIC_API_URL from .env
 All requests need: Authorization: Bearer <token>
-Token managed by Zustand store (dp-auth-storage)
+Token managed by Zustand store (dp-auth-storage) for regular users, and sa_token in localStorage for super admins.
   Accessed via useAuthStore() hook
   Axios interceptor attaches it automatically
 On 401: clear token + redirect to /login
 
 ## Auth
 Token payload: { userId, role, branchId, vendorId, ownerId }
-Role routing after login:
+Role routing after unified login (/login):
   owner          → /dashboard
   branch_manager → /branch-dashboard
   vendor         → /vendor-portal
   super_admin    → /super-admin/dashboard (uses sa_token)
-
-## Roles
-owner          → (app)/ folder — full sidebar
-branch_manager → branch-dashboard/ folder
-vendor         → vendor-portal/ folder
-super_admin    → super-admin/ folder (separate layout)
 
 ## Key Conventions
 - Use shadcn/ui components
@@ -62,7 +53,6 @@ POST   /auth/login
 POST   /auth/logout
 GET    /auth/me
 POST   /auth/signup
-POST   /auth/super-admin-login
 GET|POST        /users
 GET|PUT         /users/:id
 GET|POST        /branches
