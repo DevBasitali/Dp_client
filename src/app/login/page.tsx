@@ -44,6 +44,13 @@ export default function LoginPage() {
     onSuccess: (response) => {
       if (response.success && response.data) {
         const { user: raw, token } = response.data;
+
+        if (raw.role === "super_admin") {
+          localStorage.setItem("sa_token", token);
+          router.push("/super-admin/dashboard");
+          return;
+        }
+
         setAuth({
           userId:   raw.id,
           role:     raw.role,
