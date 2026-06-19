@@ -26,7 +26,7 @@ saApi.interceptors.response.use(
     if (status === 401 || status === 403) {
       if (typeof window !== "undefined") {
         localStorage.removeItem(SA_TOKEN_KEY);
-        window.location.href = "/super-admin/login";
+        window.location.href = "/login";
       }
     }
     return Promise.reject(error);

@@ -49,7 +49,7 @@ export default function SuperAdminLayout({
         ? localStorage.getItem(SA_TOKEN_KEY)
         : null;
     if (!token) {
-      router.replace("/super-admin/login");
+      router.replace("/login");
       return;
     }
     const payload = decodeSaToken();
@@ -58,7 +58,7 @@ export default function SuperAdminLayout({
 
   const handleLogout = () => {
     localStorage.removeItem(SA_TOKEN_KEY);
-    router.push("/super-admin/login");
+    router.push("/login");
   };
 
   // ── Sidebar nav links (desktop) ──
