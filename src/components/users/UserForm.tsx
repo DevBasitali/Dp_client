@@ -220,7 +220,11 @@ export default function UserForm({ isOpen, onClose, userToEdit, onSuccess }: Use
                     onValueChange={(val) => form.setValue("branch_id", val, { shouldValidate: true })}
                   >
                     <SelectTrigger className={form.formState.errors.branch_id ? "border-red-500" : ""}>
-                      <SelectValue placeholder="Select a branch" />
+                      <SelectValue placeholder="Select a branch">
+                        {form.watch("branch_id") 
+                          ? branches?.find(b => b.id === form.watch("branch_id"))?.name 
+                          : undefined}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {branches?.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
@@ -240,7 +244,11 @@ export default function UserForm({ isOpen, onClose, userToEdit, onSuccess }: Use
                     onValueChange={(val) => form.setValue("vendor_id", val, { shouldValidate: true })}
                   >
                     <SelectTrigger className={form.formState.errors.vendor_id ? "border-red-500" : ""}>
-                      <SelectValue placeholder="Select a vendor profile" />
+                      <SelectValue placeholder="Select a vendor profile">
+                        {form.watch("vendor_id") 
+                          ? vendors?.find(v => v.id === form.watch("vendor_id"))?.name 
+                          : undefined}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {vendors?.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
